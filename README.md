@@ -1,4 +1,4 @@
-# LOCK IN — Phase 2A
+# LOCK IN — Phase 2B
 
 A minimal Java Android action prototype. One fixed arena, one player and one enemy with basic melee AI. Rendering uses `SurfaceView` / `Canvas`; no Kotlin, game engine, or third-party runtime libraries.
 
@@ -20,15 +20,27 @@ On Windows use `gradlew.bat`. The Gradle 8.13 wrapper includes a distribution SH
 
 ## Play and verify
 
-Hold LEFT or RIGHT to move; tap JUMP or ATTACK. Separate fingers can hold movement while tapping either action. Actions trigger on a new press, not continuously while held. Dragging between buttons updates the held state. Releasing/cancelling touches or pausing clears inputs. Opposing movement buttons cancel each other.
+Hold LEFT or RIGHT to move; tap JUMP or ATTACK; press/hold the dedicated GUARD button. Separate fingers can hold movement while tapping either action. Actions trigger on a new press, not continuously while held. Dragging between buttons updates the held state. Releasing/cancelling touches or pausing clears inputs. Opposing movement buttons cancel each other.
 
 Walk toward the enemy and face it. A gold rectangle shows the active strike area. Each strike deals 25 damage at most once, lasts 0.16 seconds, and has a 0.45-second cooldown. Four hits defeat the target and remove its rectangle. A hit requires both horizontal and vertical overlap. The enemy detects the player within a configurable 340-world-pixel center radius, approaches at 110 pixels/second, and stops at a 30-pixel body gap. Detection includes vertical distance. It faces the player while idle/chasing and commits its facing through the attack: 0.5-second windup, 0.18-second active strike, then 0.7-second recovery. Each swing deals 20 damage at most once, only on active directional hitbox overlap. A lethal player strike resolves first and cancels an enemy strike in that simulation step.
 
 Enemy indicators: idle pink, chase orange, windup yellow, active red with a visible hitbox, recovery purple. The HUD labels the current state and shows both health bars. Dead enemies disappear and stop attacking. `Enemy.detectionRadius` controls detection; zero disables it for stationary practice/regression tests.
 
+## Guard, deflection, and posture
+
+GUARD raises immediately on its press edge. An enemy hit that actually overlaps during the first **250 ms (inclusive)** is deflected: no health damage, +35 enemy posture. Continuing to hold GUARD blocks later hits: no health damage, +25 player posture. Releasing lowers guard and clears the timing. A held button never refreshes the window; release/repress does. Missed hitboxes and merely entering the enemy active state have no guard/posture effect. Each swing produces at most one hit, block, or deflection.
+
+For this phase, guard protects regardless of facing and may be held while moving, jumping, or attacking; player strikes and enemy facing rules remain unchanged. The dedicated GUARD button is left of JUMP, with existing button positions preserved. Any finger remaining on GUARD keeps it held; lifting other fingers does not refresh its timing. Dragging off, touch cancellation, and pause clear guard appropriately.
+
+Both posture bars are yellow under their health bars. Default capacity is 100, recovery is 12 units/second after one second without combat contact, and contact resets that quiet delay. Blocks raise player posture; deflections raise enemy posture. Reaching capacity displays **POSTURE BROKEN** in red for one second, then resets that meter to zero. This is an indicator only: no stagger, damage vulnerability, guard lockout, or deathblow yet, and new impacts do not extend the break timer. Restart clears guard, feedback, and both meters.
+
+`CombatConfig` configures the deflect window, posture capacity, recovery speed, block/deflect posture damage, quiet delay, and break duration. Pass a config to `new Game(config)` (or individual actors in tests); the default constructor uses `CombatConfig.DEFAULT`. Brief labeled feedback shows DEFLECT in yellow, BLOCK in cyan, and HIT in red; a cyan line indicates held guard. Enemy colors and active hitboxes remain unchanged.
+
 Manual device checklist (requires a real device or emulator):
 
 - Hold movement and tap jump/attack with another finger; lift either finger first and verify no stuck movement.
+- Hold GUARD plus movement, jump, and attack with separate fingers. Lift guard first, then repeat lifting other fingers first; verify no stuck guard or refreshed window. Drag off GUARD, cancel touches, and pause/resume.
+- Deflect near contact, block by holding early, release before contact to take damage, and enter the hitbox late during an active swing. Verify one effect per swing, posture recovery, break indicators, and reset after restart.
 - Jump lands on the platform, cannot double jump, and movement stops at both arena edges.
 - Attacks miss when out of range, facing away, or above the target; one swing never causes multiple damage ticks.
 - Verify both enemy facing directions, avoid an attack by moving out of range or jumping during windup, observe recovery, lose all health, and restart. Confirm a held JUMP cannot auto-restart.
@@ -45,24 +57,26 @@ With a full JDK 17+ installed:
 ./tools/test-core.sh
 ```
 
-This compiles the production simulation directly and checks boundaries, jump/landing, air-jump rejection, frame-rate consistency, range/direction/height misses, per-strike damage, cooldown, defeat, health clamping, and invalid delta time. It also runs deterministic enemy checks for configurable detection, both chase directions, stop distance, attack durations, locked facing, vertical/range misses, one-hit damage, recovery cooldown, lethal cancellation, player defeat, and restart. The original 15 Phase 1 checks run with detection disabled to isolate player regressions. It requires no Android SDK and does not validate Android touch delivery or rendering.
+This compiles the production simulation directly and checks boundaries, jump/landing, air-jump rejection, frame-rate consistency, range/direction/height misses, per-strike damage, cooldown, defeat, health clamping, and invalid delta time. It also runs deterministic enemy checks for configurable detection, both chase directions, stop distance, attack durations, locked facing, vertical/range misses, one-hit damage, recovery cooldown, lethal cancellation, player defeat, and restart. The original 15 Phase 1 checks run with detection disabled to isolate player regressions. Guard checks cover exact timing boundaries, held/released guards, contact-time misses, one-effect-per-swing, tuning, posture accumulation/recovery/break, reset, and frame-rate consistency. Control checks cover simultaneous buttons and queued edges. The actual `InputHandler` adapter is also tested with a minimal JVM-only `MotionEvent` test double for pointer lifts, multiple guard fingers, drags, cancellation, and coordinate transforms. The test double is outside the app source tree and is not packaged. No Android SDK is required for these checks; actual Android touch delivery and rendering still need a device.
 
 ## Architecture and units
 
-- `Game`: simulation update and combat coordination; clamps stall recovery to 50 ms and substeps at most 1/120 second.
+- `Game`: simulation update and combat coordination; clamps stall recovery to 50 ms and advances fixed 1/120-second ticks, retaining action edges across shorter render frames.
 - `Player`: position, velocity, grounded/facing state, health, attack timing and per-strike hit state.
 - `Enemy`: Android-independent IDLE / CHASE / ATTACK_WINDUP / ATTACK_ACTIVE / ATTACK_RECOVERY / DEAD state machine, movement, facing, attack timing and damage.
 - `GameWorld`: fixed 960 × 540 logical world; origin top left, +x right, +y down, distances in logical pixels and speeds in logical pixels/second. Ground is y=380.
 - `CollisionManager`: world/ground resolution and axis-aligned hitbox overlap. Characters may overlap; enemy body blocking is outside this phase.
-- `InputHandler`: synchronized multitouch state and queued action edges, consumed by the simulation thread. Button coordinates share the world transform.
+- `CombatConfig` / `Posture`: configurable, Android-independent posture and recovery/break timers.
+- `Controls`: synchronized held-button masks and queued press edges; shared render/input button bounds.
+- `InputHandler`: Android MotionEvent adapter, aggregating all non-lifted pointers into `Controls`. Button coordinates share the world transform.
 - `GameScreen`: drawing, touch-coordinate conversion, Surface lifecycle and a paced rendering thread capped around 60 FPS. Updates precede rendering; simulation and drawing share one thread.
 - `MainActivity`: entry point, safe system-bar insets and lifecycle forwarding.
 
-The first five classes have no Android dependencies. There is no inheritance-based entity framework. The renderer scales uniformly into the available safe area, adding black letterboxing. Gravity and combat use world coordinates and seconds, independent of display density.
+Simulation, posture, and button-state logic have no Android dependencies. There is no inheritance-based entity framework. The renderer scales uniformly into the available safe area, adding black letterboxing. Gravity and combat use world coordinates and seconds, independent of display density.
 
 ## Limits and next steps
 
-This is a placeholder prototype: no sprites, audio, scrolling, menus, persistence, parrying, blocking, dodging, or additional levels. It supports one enemy and directional melee. Characters may overlap; there is no body blocking or knockback. Enemies do not jump or navigate platforms. Very long frame stalls drop elapsed simulation time to prevent tunnelling or sudden jumps. Rendering is paced with sleep rather than display-vsync scheduling.
+This is a placeholder prototype: no sprites, audio, scrolling, menus, persistence, dodging, deathblows, or additional levels. It supports one enemy and directional melee. Characters may overlap; there is no body blocking or knockback. Enemies do not jump or navigate platforms. Very long frame stalls drop elapsed simulation time to prevent tunnelling or sudden jumps. Rendering is paced with sleep rather than display-vsync scheduling.
 
 ## Verification in this cloud workspace
 

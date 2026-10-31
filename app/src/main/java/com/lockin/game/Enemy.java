@@ -11,17 +11,22 @@ public final class Enemy {
     /** Center-to-center distance in world pixels; zero disables detection for practice/tests. */
     public float detectionRadius = DEFAULT_DETECTION_RADIUS;
     public int health = 100;
+    public final Posture posture;
     public boolean facingRight;
     private State state = State.IDLE;
     private float stateTime;
     private boolean hitThisAttack;
 
+    public Enemy() { this(CombatConfig.DEFAULT); }
+    public Enemy(CombatConfig config) { posture = new Posture(config); }
     public State state() { return state; }
     public void reset() {
+        posture.reset();
         x = 670; y = GameWorld.GROUND_Y - HEIGHT; health = 100;
         facingRight = false; state = State.IDLE; stateTime = 0; hitThisAttack = false;
     }
     public void takeDamage(int amount) {
+        if (amount > 0) posture.pressure();
         health = Math.max(0, health - Math.max(0, amount));
         if (defeated()) { state = State.DEAD; stateTime = 0; }
     }
@@ -68,7 +73,7 @@ public final class Enemy {
         if (state == State.ATTACK_ACTIVE && !defeated() && !player.defeated() && !hitThisAttack
                 && CollisionManager.overlaps(attackLeft(), y + 10, attackRight(), y + HEIGHT - 8,
                     player.x, player.y, player.x + Player.WIDTH, player.y + Player.HEIGHT)) {
-            player.takeDamage(DAMAGE);
+            player.receiveAttack(this);
             hitThisAttack = true;
         }
     }
