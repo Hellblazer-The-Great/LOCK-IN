@@ -87,6 +87,15 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
     private void text(Canvas c, String value, float x, float y, int size, int color) {
         paint.setColor(color); paint.setTextSize(size); c.drawText(value, x, y, paint);
     }
+    private int enemyColor(Enemy.State state) {
+        switch (state) {
+            case CHASE: return Color.rgb(230, 130, 65);
+            case ATTACK_WINDUP: return Color.YELLOW;
+            case ATTACK_ACTIVE: return Color.RED;
+            case ATTACK_RECOVERY: return Color.rgb(160, 100, 210);
+            default: return Color.rgb(209, 83, 94);
+        }
+    }
     private void drawGame(Canvas c) {
         c.drawColor(Color.BLACK);
         float s = scale(c.getWidth(), c.getHeight());
@@ -102,18 +111,37 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
         rect(c, eye, p.y + 12, eye + 5, p.y + 17, Color.WHITE);
         Enemy e = game.enemy;
         if (!e.defeated()) {
-            rect(c, e.x, e.y, e.x + Enemy.WIDTH, e.y + Enemy.HEIGHT, Color.rgb(209, 83, 94));
+            rect(c, e.x, e.y, e.x + Enemy.WIDTH, e.y + Enemy.HEIGHT, enemyColor(e.state()));
             rect(c, e.x, e.y - 14, e.x + Enemy.WIDTH, e.y - 7, Color.DKGRAY);
             rect(c, e.x, e.y - 14, e.x + Enemy.WIDTH * e.health / 100f, e.y - 7, Color.RED);
         }
-        text(c, "LOCK IN  |  Phase 1", 24, 34, 24, Color.WHITE);
-        text(c, "HP " + p.health + "   Target " + e.health, 24, 65, 20, Color.WHITE);
-        text(c, e.defeated() ? "Target defeated! Force-stop app to reset." : "Move close. Face the target. Strike.", 330, 34, 20, Color.LTGRAY);
+        text(c, "LOCK IN  |  Phase 2A", 24, 34, 24, Color.WHITE);
+        text(c, "PLAYER " + p.health, 24, 64, 18, Color.WHITE);
+        rect(c, 24, 74, 224, 86, Color.DKGRAY);
+        rect(c, 24, 74, 24 + 2 * p.health, 86, Color.CYAN);
+        text(c, "ENEMY " + e.health + "  " + e.state(), 600, 64, 18, Color.WHITE);
+        rect(c, 600, 74, 800, 86, Color.DKGRAY);
+        rect(c, 600, 74, 600 + 2 * e.health, 86, Color.RED);
+        if (e.state() == Enemy.State.ATTACK_ACTIVE) {
+            rect(c, e.attackLeft(), e.y + 10, e.attackRight(), e.y + Enemy.HEIGHT - 8, 0xAAFF4444);
+        }
+        if (!e.defeated()) {
+            float enemyEye = e.facingRight ? e.x + Enemy.WIDTH - 10 : e.x + 5;
+            rect(c, enemyEye, e.y + 12, enemyEye + 5, e.y + 17, Color.WHITE);
+        }
+        if (p.defeated()) {
+            rect(c, 220, 160, 740, 260, 0xEE141B29);
+            text(c, "DEFEATED", 380, 202, 32, Color.RED);
+            text(c, "Release JUMP, then tap RESTART", 285, 240, 22, Color.WHITE);
+        } else {
+            text(c, e.defeated() ? "Enemy defeated!" : "Yellow: windup | Red: strike | Purple: recovery",
+                    330, 34, 18, Color.LTGRAY);
+        }
         int[] lefts = {20, 140, 700, 820};
-        String[] labels = {"LEFT", "RIGHT", "JUMP", "ATTACK"};
+        String[] labels = {"LEFT", "RIGHT", p.defeated() ? "RESTART" : "JUMP", "ATTACK"};
         for (int i = 0; i < 4; i++) {
             rect(c, lefts[i], 425, lefts[i] + (i == 3 ? 120 : 100), 525, Color.rgb(48, 63, 81));
-            text(c, labels[i], lefts[i] + 12, 482, 20, Color.WHITE);
+            text(c, labels[i], lefts[i] + 8, 482, i == 2 && p.defeated() ? 17 : 20, Color.WHITE);
         }
         c.restore();
     }
