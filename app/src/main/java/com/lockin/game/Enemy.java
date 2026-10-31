@@ -22,7 +22,7 @@ public final class Enemy {
     public final Posture posture;
     public boolean facingRight;
     private State state = State.IDLE;
-    private float stateTime;
+    private float stateTime, phaseDuration;
     private boolean hitThisAttack;
 
     public Enemy() { this(CombatConfig.DEFAULT); }
@@ -30,6 +30,8 @@ public final class Enemy {
     public Enemy(CombatConfig config, int maxHealth) {
         this.maxHealth = Math.max(0, maxHealth); posture = new Posture(config); reset();
     }
+    /** Actual phase duration also handles recovery after a posture break. */
+    public float phaseProgress() { return Vitals.fraction(phaseDuration - stateTime, phaseDuration); }
     public EnemyMove move() { return move; }
     public EnemyMove nextMove() { return SEQUENCE[nextMove]; }
     public int strikeNumber() { return strike + 1; }
@@ -60,7 +62,7 @@ public final class Enemy {
         posture.reset();
         move = EnemyMove.NORMAL_SLASH; nextMove = strike = 0; moveInProgress = false; betweenMoves = 0;
         x = 670; y = GameWorld.GROUND_Y - HEIGHT; health = maxHealth;
-        facingRight = false; state = State.IDLE; stateTime = 0; hitThisAttack = false;
+        facingRight = false; state = State.IDLE; stateTime = phaseDuration = 0; hitThisAttack = false;
     }
     public void takeDamage(int amount) {
         if (amount > 0) posture.pressure();
@@ -76,7 +78,7 @@ public final class Enemy {
         float dy = player.y + Player.HEIGHT / 2 - (y + HEIGHT / 2);
         return detectionRadius > 0 && dx * dx + dy * dy <= detectionRadius * detectionRadius;
     }
-    private void enter(State next, float duration) { state = next; stateTime = duration; }
+    private void enter(State next, float duration) { state = next; stateTime = phaseDuration = duration; }
     public void update(float dt, Player player) {
         if (!Float.isFinite(dt) || dt <= 0 || player.defeated()) return;
         if (defeated()) { state = State.DEAD; return; }

@@ -1,6 +1,8 @@
-# LOCK IN — v0.2.4: Dance of Blades
+# LOCK IN — v0.3.0: Textures
 
-A minimal Java Android action prototype. One fixed arena, one player and one enemy with basic melee AI. Rendering uses `SurfaceView` / `Canvas`; no Kotlin, game engine, or third-party runtime libraries.
+A minimal Java Android action prototype. One fixed arena, one player and one enemy with basic melee AI. Animated DarkNinja and Samurai Fighter characters render through native `SurfaceView` / `Canvas`, over the supplied Zen Island arena. No Kotlin, game engine, or third-party runtime libraries. Combat remains the v0.2.4 simulation.
+
+See [sprite mappings, verified layouts, animation priorities, and visual compromises](docs/SPRITES.md).
 
 ## Open, build, and run
 
@@ -46,7 +48,7 @@ Double slash separates its two active events with a **280 ms windup**; each can 
 
 Unblocked enemy strikes apply baseline **20 HP + 25 posture**; heavy applies **40 HP + 50 posture**. Blocks prevent HP damage and add **25 posture**, or **50** for heavy. Deflections prevent HP damage and add **35 attacker posture**, or **70** for heavy, with no defender posture damage. Ordinary player strikes apply **25 HP + 25 enemy posture**. Both components of a living hit are committed even when health damage is lethal; later contacts on corpses do nothing. Each individual strike resolves once. A dash-invulnerable contact consumes that strike with no health, posture, block or deflect effect, so a lingering hitbox cannot catch the same dodge as i-frames expire.
 
-Enemy indicators: idle pink, chase orange, windup yellow, active red, recovery purple. Heavy windup uses a taller orange marker; double slash labels strike 1/2 separately. Dash uses a cyan trail and a white body during i-frames. Exact enemy hitboxes can be enabled with `GameScreen.DEBUG_HITBOXES`; they are hidden by default. The HUD labels the current state and shows both health bars. Dead enemies disappear and stop attacking. `Enemy.detectionRadius` controls detection; zero disables it for stationary practice/regression tests.
+Enemy windup, strike and follow-through now use phase-synchronized Samurai animation frames. Heavy uses a downward strike, longer preparation and orange HEAVY marker; double slash uses distinct forward/return swing ranges and labels each preparation. Dash reuses the ninja run pose with a faint sprite trail. Collision and hitbox overlays can be enabled with `GameScreen.DEBUG_VISUALS`; they are hidden by default. The HUD labels the current state and shows both health bars. Dead enemies disappear and stop attacking. `Enemy.detectionRadius` controls detection; zero disables it for stationary practice/regression tests.
 
 ## Guard, deflection, and posture
 
@@ -98,6 +100,10 @@ Manual device checklist (requires a real device or emulator):
 
 At zero player health, combat freezes and a defeat overlay appears. Release JUMP and tap its relabeled RESTART button to reset both characters, attack timers, and enemy state. This uses the existing queued press edge; holding JUMP does not automatically restart. Force-stop and relaunch also resets the prototype. State survives pause/resume within the same Activity, but is intentionally not persisted across Activity/process recreation.
 
+## Visual validation
+
+Check idle/run continuity, jump/fall, both facing directions, guard/deflect, dash cancellation and stagger recovery. Watch normal → double → heavy: preparation must precede contact, both double strikes must be visible, and heavy must be recognizable before impact. Check the enemy death/corpse, player defeat and restart clearing old frames. Repeat on wide phone and tablet landscape sizes. Images are loaded once; changing visual frames never changes combat damage or body bounds.
+
 ## Automated core checks
 
 With a full JDK 17+ installed:
@@ -106,7 +112,7 @@ With a full JDK 17+ installed:
 ./tools/test-core.sh
 ```
 
-This compiles the production simulation directly and checks boundaries, jump/landing, air-jump rejection, frame-rate consistency, range/direction/height misses, per-strike damage, cooldown, defeat, health clamping, and invalid delta time. It also runs deterministic enemy checks for configurable detection, both chase directions, stop distance, attack durations, locked facing, vertical/range misses, one-hit damage, recovery cooldown, lethal cancellation, player defeat, and restart. The original 15 Phase 1 checks run with detection disabled to isolate player regressions, and the boundary-only scenario removes the enemy so the new solid body does not obstruct it. Guard checks cover exact timing boundaries, held/released guards, contact-time misses, one-effect-per-swing, tuning, posture accumulation/recovery/break, reset, and frame-rate consistency. Refinement checks cover tap penalties/recovery, rapid successful deflections, stagger/grace timing, deathblow eligibility/expiry/input edges, normalized health at 100/400/10,000 maxima and restart. Collision checks cover both sides, enemy pursuit, overlap at walls, jump-over/diagonal sweeps, corpses, touching melee, spikes and multiple render rates. Control checks cover simultaneous buttons and queued edges. The actual `InputHandler` adapter is also tested with a minimal JVM-only `MotionEvent` test double for pointer lifts, multiple guard fingers, drags, cancellation, and coordinate transforms. The test double is outside the app source tree and is not packaged. Dash/moveset checks additionally cover exact i-frame boundaries, cancellation/committed damage, stagger escapes, cooldown exploits, air/body collision, independent double events, heavy multipliers, misses/death and fixed sequence/FPS behavior. No Android SDK is required for these checks; actual Android touch delivery and rendering still need a device.
+This compiles the production simulation directly and checks boundaries, jump/landing, air-jump rejection, frame-rate consistency, range/direction/height misses, per-strike damage, cooldown, defeat, health clamping, and invalid delta time. It also runs deterministic enemy checks for configurable detection, both chase directions, stop distance, attack durations, locked facing, vertical/range misses, one-hit damage, recovery cooldown, lethal cancellation, player defeat, and restart. The original 15 Phase 1 checks run with detection disabled to isolate player regressions, and the boundary-only scenario removes the enemy so the new solid body does not obstruct it. Guard checks cover exact timing boundaries, held/released guards, contact-time misses, one-effect-per-swing, tuning, posture accumulation/recovery/break, reset, and frame-rate consistency. Refinement checks cover tap penalties/recovery, rapid successful deflections, stagger/grace timing, deathblow eligibility/expiry/input edges, normalized health at 100/400/10,000 maxima and restart. Collision checks cover both sides, enemy pursuit, overlap at walls, jump-over/diagonal sweeps, corpses, touching melee, spikes and multiple render rates. Control checks cover simultaneous buttons and queued edges. The actual `InputHandler` adapter is also tested with a minimal JVM-only `MotionEvent` test double for pointer lifts, multiple guard fingers, drags, cancellation, and coordinate transforms. The test double is outside the app source tree and is not packaged. Dash/moveset checks additionally cover exact i-frame boundaries, cancellation/committed damage, stagger escapes, cooldown exploits, air/body collision, independent double events, heavy multipliers, misses/death and fixed sequence/FPS behavior. Animation/asset checks also decode the explicit manifest, exclude blank sheet cells, validate source rectangles/flip metadata, loop/one-shot playback, phase synchronization, state priorities, restart, body-size independence and several landscape viewport sizes. They use standard host JDK ImageIO only; that code is outside the Android app. No Android SDK is required for these checks; actual Android touch delivery and rendering still need a device.
 
 ## Architecture and units
 
@@ -118,6 +124,9 @@ This compiles the production simulation directly and checks boundaries, jump/lan
 - `CombatConfig` / `Posture`: configurable, Android-independent posture and recovery/break timers.
 - `Controls`: synchronized held-button masks and queued press edges; shared render/input button bounds.
 - `InputHandler`: Android MotionEvent adapter, aggregating all non-lifted pointers into `Controls`. Button coordinates share the world transform.
+- `SpriteClip` / `AnimationClock` / `CharacterAnimations`: Android-independent asset descriptors, animation playback and read-only visual state selection.
+- `SpritePainter`: explicit cached image loading, pixel-friendly sprite drawing and lightweight layered arena.
+- `Viewport`: shared uniform landscape scaling.
 - `GameScreen`: drawing, touch-coordinate conversion, Surface lifecycle and a paced rendering thread capped around 60 FPS. Updates precede rendering; simulation and drawing share one thread.
 - `MainActivity`: entry point, safe system-bar insets and lifecycle forwarding.
 
@@ -125,10 +134,10 @@ Simulation, posture, and button-state logic have no Android dependencies. There 
 
 ## Limits and next steps
 
-This is a placeholder prototype: no sprites, audio, scrolling, menus, persistence, or additional levels. It supports one enemy, directional melee and dashing; it does not use stamina or adaptive AI. There is no knockback or enemy body platform. Enemies do not jump or navigate platforms. Very long frame stalls drop elapsed simulation time to prevent tunnelling or sudden jumps. Rendering is paced with sleep rather than display-vsync scheduling.
+This is a single-arena prototype: no audio, scrolling, menus, persistence, or additional levels. It supports one enemy, directional melee and dashing; it does not use stamina or adaptive AI. There is no knockback or enemy body platform. Enemies do not jump or navigate platforms. Very long frame stalls drop elapsed simulation time to prevent tunnelling or sudden jumps. Rendering is paced with sleep rather than display-vsync scheduling.
 
 ## Verification in this cloud workspace
 
 Run `./tools/test-core.sh` and `./gradlew assembleDebug lintDebug` for current results. The cloud machine uses `/workspace/toolchains/jdk-21.0.6+7` as `JAVA_HOME`, `/workspace/android-sdk` as `ANDROID_HOME`, and `/workspace/.gradle` as `GRADLE_USER_HOME`. Source `/workspace/setup/lock-in-env.sh` to activate its tooling, writable Android state, proxy and system trust settings. These are local tooling paths, not required project settings.
 
-No Android device/emulator is connected. On-device gameplay, multitouch, state colors, restart interaction, and lifecycle checks require the manual device checklist above.
+No Android device/emulator is connected. On-device gameplay, multitouch, GPU sprite rendering, readability, restart interaction, and lifecycle checks require the manual device checklist above.
