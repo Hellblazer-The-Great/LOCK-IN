@@ -8,7 +8,10 @@ public final class Game {
     public final Player player;
     public final Enemy enemy;
     public Game() { this(CombatConfig.DEFAULT); }
-    public Game(CombatConfig config) { player = new Player(config); enemy = new Enemy(config); }
+    public Game(CombatConfig config) { this(config, Player.DEFAULT_MAX_HEALTH, Enemy.DEFAULT_MAX_HEALTH); }
+    public Game(CombatConfig config, int playerMaxHealth, int enemyMaxHealth) {
+        player = new Player(config, playerMaxHealth); enemy = new Enemy(config, enemyMaxHealth);
+    }
     public void restart() {
         player.reset(); enemy.reset(); accumulator = 0; jumpQueued = attackQueued = false;
     }
@@ -16,12 +19,15 @@ public final class Game {
         update(dt, move, jump, attack, false, false);
     }
     public void update(float dt, int move, boolean jump, boolean attack, boolean guard, boolean guardPressed) {
+        update(dt, move, jump, attack, guard, guardPressed ? 1 : 0);
+    }
+    public void update(float dt, int move, boolean jump, boolean attack, boolean guard, int guardPresses) {
         if ((Float.isNaN(dt) || Float.isInfinite(dt)) || dt <= 0) return;
         if (player.defeated()) {
             if (jump) restart();
             return;
         }
-        player.setGuard(guard, guardPressed);
+        player.setGuard(guard, guardPresses);
         // Fixed simulation ticks keep contact/timing identical across render frame rates.
         // Preserve press edges when a render frame is shorter than a simulation tick.
         jumpQueued |= jump;
@@ -30,13 +36,19 @@ public final class Game {
         while (accumulator + 1e-9 >= STEP) {
             float step = (float) STEP;
             accumulator = Math.max(0, accumulator - STEP);
+            CollisionManager.resolveBodies(player, enemy);
+            float oldPlayerX = player.x, oldPlayerY = player.y;
             player.updateDefense(step);
             enemy.posture.update(step);
             player.update(step, Math.max(-1, Math.min(1, move)), jumpQueued, attackQueued);
+            CollisionManager.resolvePlayerMovement(player, enemy, oldPlayerX, oldPlayerY);
+            if (attackQueued) player.tryDeathblow(enemy);
             jumpQueued = attackQueued = false;
             // Player strikes resolve first: a lethal strike cancels the enemy attack.
             player.tryHit(enemy);
+            float oldEnemyX = enemy.x;
             enemy.update(step, player);
+            CollisionManager.resolveEnemyMovement(enemy, player, oldEnemyX);
             enemy.tryHit(player);
             if (player.defeated()) { accumulator = 0; break; }
         }

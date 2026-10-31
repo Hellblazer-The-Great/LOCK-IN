@@ -18,6 +18,7 @@ public final class CoreChecks {
     }
     public static void main(String[] args) {
         Game g = practiceGame();
+        g.enemy.takeDamage(g.enemy.maxHealth); // Boundary checks now use an unobstructed arena.
         step(g, 2, -1);
         check(g.player.x == 0, "left boundary");
         step(g, 5, 1);
