@@ -1,4 +1,4 @@
-# LOCK IN — Phase 2B
+# LOCK IN — v0.2.3 (Phase 2C)
 
 A minimal Java Android action prototype. One fixed arena, one player and one enemy with basic melee AI. Rendering uses `SurfaceView` / `Canvas`; no Kotlin, game engine, or third-party runtime libraries.
 
@@ -28,19 +28,37 @@ Enemy indicators: idle pink, chase orange, windup yellow, active red with a visi
 
 ## Guard, deflection, and posture
 
-GUARD raises immediately on its press edge. An enemy hit that actually overlaps during the first **250 ms (inclusive)** is deflected: no health damage, +35 enemy posture. Continuing to hold GUARD blocks later hits: no health damage, +25 player posture. Releasing lowers guard and clears the timing. A held button never refreshes the window; release/repress does. Missed hitboxes and merely entering the enemy active state have no guard/posture effect. Each swing produces at most one hit, block, or deflection.
+GUARD raises immediately on its press edge. Enemy hitbox contact within the initial **250 ms (inclusive)** deflects: no health damage, +35 enemy posture. Holding longer blocks: no health damage, +25 player posture. Releasing lowers guard. A held button never refreshes timing. Missing the body or merely entering the active state produces no impact; each swing can resolve at most once.
 
-For this phase, guard protects regardless of facing and may be held while moving, jumping, or attacking; player strikes and enemy facing rules remain unchanged. The dedicated GUARD button is left of JUMP, with existing button positions preserved. Any finger remaining on GUARD keeps it held; lifting other fingers does not refresh its timing. Dragging off, touch cancellation, and pause clear guard appropriately.
+Unsuccessful short taps reduce the next window by **50 ms**, down to **50 ms**. Success resets the penalty and restores the full window without resetting the original press timestamp. The penalty clears after **0.8 seconds** without another unsuccessful tap. A hold lasting at least 0.8 seconds is not classified as a failed tap. There is no guard input cooldown or activation delay. Successful rapid deflections remain unpenalized. Input snapshots count every press, even several completed taps between rendered frames.
 
-Both posture bars are yellow under their health bars. Default capacity is 100, recovery is 12 units/second after one second without combat contact, and contact resets that quiet delay. Blocks raise player posture; deflections raise enemy posture. Reaching capacity displays **POSTURE BROKEN** in red for one second, then resets that meter to zero. This is an indicator only: no stagger, damage vulnerability, guard lockout, or deathblow yet, and new impacts do not extend the break timer. Restart clears guard, feedback, and both meters.
+Guard remains independent of facing and can be held while moving, jumping, or attacking, except while staggered. The dedicated GUARD button is left of JUMP; other button positions are unchanged. Any remaining finger on GUARD keeps it held. Pointer lifts, drags, cancellation and lifecycle clearing do not create extra press edges.
 
-`CombatConfig` configures the deflect window, posture capacity, recovery speed, block/deflect posture damage, quiet delay, and break duration. Pass a config to `new Game(config)` (or individual actors in tests); the default constructor uses `CombatConfig.DEFAULT`. Brief labeled feedback shows DEFLECT in yellow, BLOCK in cyan, and HIT in red; a cyan line indicates held guard. Enemy colors and active hitboxes remain unchanged.
+Both posture meters have capacity **100**, recovering **12 units/second** after **one second** without combat contact. Blocks add player posture; deflections add enemy posture, never defender posture. At full posture:
+
+- The player staggers for **one second**: guard, movement, jump and attacks are suppressed, while gravity and incoming health damage remain active. Additional impacts cannot extend this timer. Holding GUARD through recovery resumes a regular block, without granting a fresh deflect window.
+- The enemy stops moving and attacking for **one second**, with a pale body, red marker and shrinking opportunity bar. A fresh **ATTACK** press executes a deathblow when facing the enemy, within a **90-pixel body gap**, with vertical body overlap. This defeats the standard enemy regardless of remaining HP and overrides ordinary attack cooldown. Existing active attacks do not automatically become deathblows. If the window expires, the enemy resumes through attack recovery.
+
+After either break, posture resets to zero and **one second of posture immunity** prevents immediate break loops; this does not grant health invulnerability. Ordinary health-based enemy defeat still works. Restart clears guard, penalties, feedback, posture, stagger, immunity, and the fixed-step accumulator.
+
+`CombatConfig` exposes the initial/minimum windows, penalty step, tap recovery time, posture capacity/recovery, block/deflect posture damage, quiet delay, break duration, immunity and deathblow range. Its original seven-argument constructor remains supported; the extended constructor provides all tuning. `new Game(config, playerMaxHealth, enemyMaxHealth)` sets health maxima, or edit the actors' `DEFAULT_MAX_HEALTH` constants for default gameplay. Maxima are reused on spawn and every restart, not hardcoded to 100. The pushed Phase 2B defaults remain 100 for both actors.
+
+Every health bar uses `clamp(current / maximum, 0, 1)` and a fixed width: 200 virtual pixels in the HUD and 44 above the enemy. Posture bars also use normalized fractions. Invalid/zero maxima and non-finite values render empty; negative HP renders empty and overhealing renders full. HP text remains numeric.
+
+Feedback: DEFLECT is yellow with contact rays; BLOCK cyan; HIT red; player POSTURE_BREAK magenta with a persistent STAGGERED label; DEATHBLOW orange-red with a longer burst. The HUD prompts `ATTACK: DEATHBLOW!` only when eligible. Existing enemy windup/active/recovery colors remain unchanged.
+
+## Solid body collision
+
+Living bodies are separate from attack hitboxes. Player movement sweeps against the stationary enemy, then enemy pursuit sweeps against the player's resolved position without pushing the player. Vertical sweep intervals prevent diagonal tunneling; fixed 120 Hz ticks and the 50 ms stall cap are retained. An initial overlap or descent into a body places the player on the nearest valid side within world bounds. Jumping completely above the enemy permits crossing and landing on the other side; the enemy is not a standable platform. Corpses do not obstruct. Touching does not change facing or prevent melee contact.
 
 Manual device checklist (requires a real device or emulator):
 
 - Hold movement and tap jump/attack with another finger; lift either finger first and verify no stuck movement.
 - Hold GUARD plus movement, jump, and attack with separate fingers. Lift guard first, then repeat lifting other fingers first; verify no stuck guard or refreshed window. Drag off GUARD, cancel touches, and pause/resume.
-- Deflect near contact, block by holding early, release before contact to take damage, and enter the hitbox late during an active swing. Verify one effect per swing, posture recovery, break indicators, and reset after restart.
+- Spam short GUARD taps and verify a shrinking deflect window but immediate block. Land rapid deflections to clear the penalty; stop tapping to recover.
+- Break both posture meters: verify player stagger/grace, enemy attack cancellation, range/facing deathblow prompt, opportunity expiry, and ATTACK execution. Verify only one effect per swing.
+- Increase actor maxima to 400 and 10,000; check HUD and overhead bars at full/half health, death, and restart.
+- Walk into both enemy sides, move away, jump over it, and walk through its corpse; check no overlap, pushing, jitter or clipping.
 - Jump lands on the platform, cannot double jump, and movement stops at both arena edges.
 - Attacks miss when out of range, facing away, or above the target; one swing never causes multiple damage ticks.
 - Verify both enemy facing directions, avoid an attack by moving out of range or jumping during windup, observe recovery, lose all health, and restart. Confirm a held JUMP cannot auto-restart.
@@ -57,15 +75,15 @@ With a full JDK 17+ installed:
 ./tools/test-core.sh
 ```
 
-This compiles the production simulation directly and checks boundaries, jump/landing, air-jump rejection, frame-rate consistency, range/direction/height misses, per-strike damage, cooldown, defeat, health clamping, and invalid delta time. It also runs deterministic enemy checks for configurable detection, both chase directions, stop distance, attack durations, locked facing, vertical/range misses, one-hit damage, recovery cooldown, lethal cancellation, player defeat, and restart. The original 15 Phase 1 checks run with detection disabled to isolate player regressions. Guard checks cover exact timing boundaries, held/released guards, contact-time misses, one-effect-per-swing, tuning, posture accumulation/recovery/break, reset, and frame-rate consistency. Control checks cover simultaneous buttons and queued edges. The actual `InputHandler` adapter is also tested with a minimal JVM-only `MotionEvent` test double for pointer lifts, multiple guard fingers, drags, cancellation, and coordinate transforms. The test double is outside the app source tree and is not packaged. No Android SDK is required for these checks; actual Android touch delivery and rendering still need a device.
+This compiles the production simulation directly and checks boundaries, jump/landing, air-jump rejection, frame-rate consistency, range/direction/height misses, per-strike damage, cooldown, defeat, health clamping, and invalid delta time. It also runs deterministic enemy checks for configurable detection, both chase directions, stop distance, attack durations, locked facing, vertical/range misses, one-hit damage, recovery cooldown, lethal cancellation, player defeat, and restart. The original 15 Phase 1 checks run with detection disabled to isolate player regressions, and the boundary-only scenario removes the enemy so the new solid body does not obstruct it. Guard checks cover exact timing boundaries, held/released guards, contact-time misses, one-effect-per-swing, tuning, posture accumulation/recovery/break, reset, and frame-rate consistency. Refinement checks cover tap penalties/recovery, rapid successful deflections, stagger/grace timing, deathblow eligibility/expiry/input edges, normalized health at 100/400/10,000 maxima and restart. Collision checks cover both sides, enemy pursuit, overlap at walls, jump-over/diagonal sweeps, corpses, touching melee, spikes and multiple render rates. Control checks cover simultaneous buttons and queued edges. The actual `InputHandler` adapter is also tested with a minimal JVM-only `MotionEvent` test double for pointer lifts, multiple guard fingers, drags, cancellation, and coordinate transforms. The test double is outside the app source tree and is not packaged. No Android SDK is required for these checks; actual Android touch delivery and rendering still need a device.
 
 ## Architecture and units
 
 - `Game`: simulation update and combat coordination; clamps stall recovery to 50 ms and advances fixed 1/120-second ticks, retaining action edges across shorter render frames.
 - `Player`: position, velocity, grounded/facing state, health, attack timing and per-strike hit state.
-- `Enemy`: Android-independent IDLE / CHASE / ATTACK_WINDUP / ATTACK_ACTIVE / ATTACK_RECOVERY / DEAD state machine, movement, facing, attack timing and damage.
+- `Enemy`: Android-independent IDLE / CHASE / ATTACK_WINDUP / ATTACK_ACTIVE / ATTACK_RECOVERY / POSTURE_BROKEN / DEAD state machine, movement, facing, attack timing and damage.
 - `GameWorld`: fixed 960 × 540 logical world; origin top left, +x right, +y down, distances in logical pixels and speeds in logical pixels/second. Ground is y=380.
-- `CollisionManager`: world/ground resolution and axis-aligned hitbox overlap. Characters may overlap; enemy body blocking is outside this phase.
+- `CollisionManager`: world/ground resolution and axis-aligned hitbox overlap. Solid body sweeps are independent of attack hitboxes; living actors cannot pass through each other at overlapping heights.
 - `CombatConfig` / `Posture`: configurable, Android-independent posture and recovery/break timers.
 - `Controls`: synchronized held-button masks and queued press edges; shared render/input button bounds.
 - `InputHandler`: Android MotionEvent adapter, aggregating all non-lifted pointers into `Controls`. Button coordinates share the world transform.
@@ -76,7 +94,7 @@ Simulation, posture, and button-state logic have no Android dependencies. There 
 
 ## Limits and next steps
 
-This is a placeholder prototype: no sprites, audio, scrolling, menus, persistence, dodging, deathblows, or additional levels. It supports one enemy and directional melee. Characters may overlap; there is no body blocking or knockback. Enemies do not jump or navigate platforms. Very long frame stalls drop elapsed simulation time to prevent tunnelling or sudden jumps. Rendering is paced with sleep rather than display-vsync scheduling.
+This is a placeholder prototype: no sprites, audio, scrolling, menus, persistence, dodging, or additional levels. It supports one enemy and directional melee. There is no knockback or enemy body platform. Enemies do not jump or navigate platforms. Very long frame stalls drop elapsed simulation time to prevent tunnelling or sudden jumps. Rendering is paced with sleep rather than display-vsync scheduling.
 
 ## Verification in this cloud workspace
 

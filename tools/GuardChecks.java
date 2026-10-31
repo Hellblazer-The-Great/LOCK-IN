@@ -82,8 +82,8 @@ public final class GuardChecks {
         p.posture.add(100); check(p.posture.broken(), "player reaches broken state");
         near(p.posture.value(), 60, "capacity clamps posture");
         p.receiveAttack(e);
-        check(p.health == 100 && p.impact() == Player.Impact.BLOCK,
-                "temporary player break is an indicator and does not remove guard protection");
+        check(p.health == 80 && p.impact() == Player.Impact.HIT && !p.guarding(),
+                "Phase 2C stagger temporarily removes guard protection");
         p.posture.update(.5); p.posture.add(10); p.posture.update(.25);
         check(!p.posture.broken() && p.posture.value() == 0, "temporary break ends and repeated pressure does not extend it");
         p.setGuard(false, false); p.setGuard(true, true); p.receiveAttack(e);

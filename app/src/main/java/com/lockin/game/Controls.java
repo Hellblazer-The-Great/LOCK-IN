@@ -4,7 +4,7 @@ package com.lockin.game;
 public final class Controls {
     public static final int LEFT = 0, RIGHT = 1, JUMP = 2, ATTACK = 3, GUARD = 4, COUNT = 5;
     private static final int[] LEFTS = {20, 140, 700, 820, 570};
-    private int held, queued;
+    private int held, queued, guardPresses;
 
     public static int left(int button) { return LEFTS[button]; }
     public static int width(int button) { return button == ATTACK ? 120 : 100; }
@@ -17,20 +17,22 @@ public final class Controls {
     }
     /** Full mask of buttons currently covered by any non-lifted touch pointer. */
     public synchronized void setHeld(int buttons) {
+        if ((buttons & ~held & (1 << GUARD)) != 0) guardPresses = Math.min(1000000, guardPresses + 1);
         queued |= buttons & ~held;
         held = buttons;
     }
     public synchronized Snapshot consume() {
-        Snapshot snapshot = new Snapshot(held, queued);
-        queued = 0;
+        Snapshot snapshot = new Snapshot(held, queued, guardPresses);
+        queued = guardPresses = 0;
         return snapshot;
     }
-    public synchronized void clear() { held = queued = 0; }
+    public synchronized void clear() { held = queued = guardPresses = 0; }
 
     public static final class Snapshot {
-        public final int move;
+        public final int move, guardPresses;
         public final boolean jump, attack, guard, guardPressed;
-        private Snapshot(int held, int queued) {
+        private Snapshot(int held, int queued, int guardPresses) {
+            this.guardPresses = guardPresses;
             move = ((held >> RIGHT) & 1) - ((held >> LEFT) & 1);
             jump = (queued & (1 << JUMP)) != 0;
             attack = (queued & (1 << ATTACK)) != 0;
