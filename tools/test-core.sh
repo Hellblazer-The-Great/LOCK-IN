@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT HUP INT TERM
 src=app/src/main/java/com/lockin/game
-javac --release 17 -d "$out" "$src/GameWorld.java" "$src/Player.java" "$src/Enemy.java" "$src/EnemyMove.java" "$src/CollisionManager.java" "$src/Game.java" "$src/CombatConfig.java" "$src/Posture.java" "$src/Controls.java" "$src/Vitals.java" tools/CoreChecks.java tools/EnemyChecks.java tools/GuardChecks.java tools/ControlChecks.java tools/RefinementChecks.java tools/CollisionChecks.java tools/DashChecks.java tools/MovesetChecks.java
+javac --release 17 -d "$out" "$src/GameWorld.java" "$src/Player.java" "$src/Enemy.java" "$src/EnemyMove.java" "$src/CollisionManager.java" "$src/Game.java" "$src/CombatConfig.java" "$src/Posture.java" "$src/Controls.java" "$src/Vitals.java" "$src/SpriteClip.java" "$src/AnimationClock.java" "$src/CharacterAnimations.java" "$src/Viewport.java" tools/CoreChecks.java tools/EnemyChecks.java tools/GuardChecks.java tools/ControlChecks.java tools/RefinementChecks.java tools/CollisionChecks.java tools/DashChecks.java tools/MovesetChecks.java tools/VisualChecks.java
 java -cp "$out" com.lockin.game.CoreChecks
 java -cp "$out" com.lockin.game.EnemyChecks
 java -cp "$out" com.lockin.game.GuardChecks
@@ -16,3 +16,4 @@ java -cp "$out" com.lockin.game.RefinementChecks
 java -cp "$out" com.lockin.game.CollisionChecks
 java -cp "$out" com.lockin.game.DashChecks
 java -cp "$out" com.lockin.game.MovesetChecks
+java -Djava.awt.headless=true -cp "$out" com.lockin.game.VisualChecks

@@ -4,6 +4,8 @@ package com.lockin.game;
 public final class Game {
     private static final double STEP = 1.0 / 120;
     private double accumulator;
+    private long restartVersion;
+    public long restartVersion() { return restartVersion; }
     private boolean jumpQueued, attackQueued, dashQueued;
     public final Player player;
     public final Enemy enemy;
@@ -13,6 +15,7 @@ public final class Game {
         player = new Player(config, playerMaxHealth); enemy = new Enemy(config, enemyMaxHealth);
     }
     public void restart() {
+        restartVersion++;
         player.reset(); enemy.reset(); accumulator = 0; jumpQueued = attackQueued = dashQueued = false;
     }
     public void update(float dt, int move, boolean jump, boolean attack) {

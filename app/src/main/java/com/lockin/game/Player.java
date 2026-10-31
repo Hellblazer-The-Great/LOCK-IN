@@ -59,6 +59,14 @@ public final class Player {
         posture.cancelBreak();
         return true;
     }
+    /** Read-only presentation progress; rendering never drives combat timers. */
+    public float attackProgress() { return Vitals.fraction(ATTACK_DURATION - attackTime, ATTACK_DURATION); }
+    public boolean attackRecovering() { return !attacking() && cooldown > 0 && !dashing() && !deathblowing(); }
+    public float deathblowProgress() { return Vitals.fraction(DEATHBLOW_DURATION - deathblowTime, DEATHBLOW_DURATION); }
+    public float impactProgress() {
+        double duration = impact == Impact.DEATHBLOW ? .6 : .25;
+        return Vitals.fraction(duration - feedbackTime, duration);
+    }
     public Impact impact() { return impact; }
     private void failTaps(int count) {
         if (count <= 0) return;
