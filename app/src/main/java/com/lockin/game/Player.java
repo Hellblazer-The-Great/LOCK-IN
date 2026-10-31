@@ -10,7 +10,17 @@ public final class Player {
     private float attackTime, cooldown;
     private boolean hitThisAttack;
 
+    public boolean defeated() { return health == 0; }
+    public void takeDamage(int amount) {
+        health = Math.max(0, health - Math.max(0, amount));
+        if (defeated()) { attackTime = 0; velocityY = 0; }
+    }
+    public void reset() {
+        x = 180; y = GameWorld.GROUND_Y - HEIGHT; velocityY = 0; health = 100;
+        facingRight = grounded = true; attackTime = cooldown = 0; hitThisAttack = false;
+    }
     public void update(float dt, int move, boolean jump, boolean attack) {
+        if (defeated()) return;
         attackTime = Math.max(0, attackTime - dt);
         cooldown = Math.max(0, cooldown - dt);
         if (move != 0) facingRight = move > 0;
@@ -30,7 +40,7 @@ public final class Player {
     public float attackLeft() { return facingRight ? x + WIDTH : x - ATTACK_RANGE; }
     public float attackRight() { return attackLeft() + ATTACK_RANGE; }
     public void tryHit(Enemy enemy) {
-        if (attacking() && !hitThisAttack && !enemy.defeated()
+        if (!defeated() && attacking() && !hitThisAttack && !enemy.defeated()
                 && CollisionManager.overlaps(attackLeft(), y + 10, attackRight(), y + HEIGHT - 8,
                     enemy.x, enemy.y, enemy.x + Enemy.WIDTH, enemy.y + Enemy.HEIGHT)) {
             enemy.takeDamage(25);
