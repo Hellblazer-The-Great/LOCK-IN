@@ -19,5 +19,6 @@ public final class InputHandler {
         controls.setHeld(held);
     }
     public Controls.Snapshot consume() { return controls.consume(); }
+    public void consume(Controls.Snapshot target) { controls.consume(target); }
     public void clear() { controls.clear(); }
 }
