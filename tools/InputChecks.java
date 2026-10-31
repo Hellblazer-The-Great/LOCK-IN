@@ -41,6 +41,21 @@ public final class InputChecks {
                 new float[]{1245}, new float[]{957}), 2, 5, 7);
         s = input.consume(); check(s.guard && s.guardPressed, "letterbox and scale transform matches guard button");
         input.clear(); check(!input.consume().guard, "lifecycle clear releases guard");
+        touch(input, MotionEvent.ACTION_DOWN, 0, 490);
+        s = input.consume(); check(s.dash, "DASH down queues a press");
+        touch(input, MotionEvent.ACTION_POINTER_DOWN, 1, 490, 620);
+        s = input.consume(); check(!s.dash && s.guard && s.guardPresses == 1, "held DASH and new GUARD remain independent");
+        touch(input, MotionEvent.ACTION_POINTER_DOWN, 2, 490, 620, 70);
+        s = input.consume(); check(!s.dash && s.guard && s.guardPresses == 0 && s.move == -1,
+                "third movement finger does not retrigger DASH or GUARD");
+        touch(input, MotionEvent.ACTION_POINTER_UP, 0, 490, 620, 70);
+        s = input.consume(); check(!s.dash && s.guard && s.move == -1, "lifting DASH finger preserves guard and direction");
+        touch(input, MotionEvent.ACTION_CANCEL, 0, 620, 70);
+        Controls.Snapshot reusable = new Controls.Snapshot(); input.consume(reusable);
+        check(!reusable.dash && !reusable.guard && reusable.move == 0, "cancel clears reusable input snapshot");
+        touch(input, MotionEvent.ACTION_DOWN, 0, 490); touch(input, MotionEvent.ACTION_UP, 0, 490);
+        input.consume(reusable); check(reusable.dash, "quick completed DASH tap is queued");
+        input.consume(reusable); check(!reusable.dash, "completed DASH tap consumed only once");
         System.out.println("Passed " + checks + " touch adapter checks");
     }
 }

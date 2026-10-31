@@ -4,7 +4,7 @@ package com.lockin.game;
 public final class Game {
     private static final double STEP = 1.0 / 120;
     private double accumulator;
-    private boolean jumpQueued, attackQueued;
+    private boolean jumpQueued, attackQueued, dashQueued;
     public final Player player;
     public final Enemy enemy;
     public Game() { this(CombatConfig.DEFAULT); }
@@ -13,7 +13,7 @@ public final class Game {
         player = new Player(config, playerMaxHealth); enemy = new Enemy(config, enemyMaxHealth);
     }
     public void restart() {
-        player.reset(); enemy.reset(); accumulator = 0; jumpQueued = attackQueued = false;
+        player.reset(); enemy.reset(); accumulator = 0; jumpQueued = attackQueued = dashQueued = false;
     }
     public void update(float dt, int move, boolean jump, boolean attack) {
         update(dt, move, jump, attack, false, false);
@@ -22,6 +22,9 @@ public final class Game {
         update(dt, move, jump, attack, guard, guardPressed ? 1 : 0);
     }
     public void update(float dt, int move, boolean jump, boolean attack, boolean guard, int guardPresses) {
+        update(dt, move, jump, attack, guard, guardPresses, false);
+    }
+    public void update(float dt, int move, boolean jump, boolean attack, boolean guard, int guardPresses, boolean dash) {
         if ((Float.isNaN(dt) || Float.isInfinite(dt)) || dt <= 0) return;
         if (player.defeated()) {
             if (jump) restart();
@@ -32,6 +35,7 @@ public final class Game {
         // Preserve press edges when a render frame is shorter than a simulation tick.
         jumpQueued |= jump;
         attackQueued |= attack;
+        dashQueued |= dash;
         accumulator += Math.min(dt, .05f);
         while (accumulator + 1e-9 >= STEP) {
             float step = (float) STEP;
@@ -40,10 +44,14 @@ public final class Game {
             float oldPlayerX = player.x, oldPlayerY = player.y;
             player.updateDefense(step);
             enemy.posture.update(step);
+            // Eligible deathblow wins a simultaneous ATTACK/DASH press and cannot be cancelled.
+            if (attackQueued && player.canDeathblow(enemy)) player.tryDeathblow(enemy);
+            if (dashQueued) player.startDash(move);
             player.update(step, Math.max(-1, Math.min(1, move)), jumpQueued, attackQueued);
+            player.setGuard(guard, 0);
             CollisionManager.resolvePlayerMovement(player, enemy, oldPlayerX, oldPlayerY);
             if (attackQueued) player.tryDeathblow(enemy);
-            jumpQueued = attackQueued = false;
+            jumpQueued = attackQueued = dashQueued = false;
             // Player strikes resolve first: a lethal strike cancels the enemy attack.
             player.tryHit(enemy);
             float oldEnemyX = enemy.x;

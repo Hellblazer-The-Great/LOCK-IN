@@ -9,6 +9,8 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 public final class GameScreen extends SurfaceView implements SurfaceHolder.Callback, Runnable {
+    private static final boolean DEBUG_HITBOXES = false;
+    private final Controls.Snapshot controls = new Controls.Snapshot();
     private final Game game = new Game();
     private final InputHandler input = new InputHandler();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -55,8 +57,8 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
             long start = System.nanoTime();
             float dt = (start - previous) / 1_000_000_000f;
             previous = start;
-            Controls.Snapshot controls = input.consume();
-            game.update(dt, controls.move, controls.jump, controls.attack, controls.guard, controls.guardPresses);
+            input.consume(controls);
+            game.update(dt, controls.move, controls.jump, controls.attack, controls.guard, controls.guardPresses, controls.dash);
             Canvas canvas = null;
             try {
                 canvas = getHolder().lockCanvas();
@@ -114,7 +116,12 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
         rect(c, 0, GameWorld.GROUND_Y, 960, 400, Color.rgb(90, 105, 112));
         Player p = game.player;
         if (p.attacking()) rect(c, p.attackLeft(), p.y + 10, p.attackRight(), p.y + Player.HEIGHT - 8, 0x99FFBB55);
-        rect(c, p.x, p.y, p.x + Player.WIDTH, p.y + Player.HEIGHT, Color.rgb(82, 191, 226));
+        if (p.dashing()) {
+            float trail = p.x - p.dashDirection() * 28;
+            rect(c, trail, p.y + 5, trail + Player.WIDTH, p.y + Player.HEIGHT - 5, 0x5552BFE2);
+        }
+        rect(c, p.x, p.y, p.x + Player.WIDTH, p.y + Player.HEIGHT,
+                p.invulnerable() ? Color.WHITE : p.dashing() ? Color.CYAN : Color.rgb(82, 191, 226));
         if (p.guarding()) {
             float guardX = p.facingRight ? p.x + Player.WIDTH + 3 : p.x - 7;
             rect(c, guardX, p.y + 3, guardX + 4, p.y + Player.HEIGHT - 3, Color.CYAN);
@@ -149,7 +156,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
             rect(c, e.x, e.y - 14, e.x + Enemy.WIDTH, e.y - 7, Color.DKGRAY);
             rect(c, e.x, e.y - 14, e.x + Enemy.WIDTH * e.healthFraction(), e.y - 7, Color.RED);
         }
-        text(c, "LOCK IN  |  v0.2.3", 24, 34, 24, Color.WHITE);
+        text(c, "LOCK IN  |  v0.2.4", 24, 34, 24, Color.WHITE);
         text(c, "PLAYER " + p.health + "/" + p.maxHealth, 24, 64, 18, Color.WHITE);
         rect(c, 24, 74, 224, 86, Color.DKGRAY);
         rect(c, 24, 74, 24 + 200 * p.healthFraction(), 86, Color.CYAN);
@@ -160,13 +167,25 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
         postureBar(c, e.posture, 600, 98, "ENEMY POSTURE");
         text(c, p.staggered() ? "STAGGERED" : "", 24, 151, 18, Color.RED);
         text(c, e.state().name(), 600, 151, 16, Color.LTGRAY);
+        if (!e.defeated()) text(c, e.move().name() + " " + e.strikeNumber() + "/" + e.move().strikes,
+                600, 174, 16, e.move() == EnemyMove.HEAVY_OVERHEAD ? Color.rgb(255, 150, 60) : Color.LTGRAY);
+        if (e.state() == Enemy.State.ATTACK_WINDUP) {
+            int telegraph = e.move() == EnemyMove.HEAVY_OVERHEAD ? Color.rgb(255, 150, 60) : Color.YELLOW;
+            float top = e.y - (e.move() == EnemyMove.HEAVY_OVERHEAD ? 35 : 20);
+            rect(c, e.x + 4, top, e.x + Enemy.WIDTH - 4, top + (e.move() == EnemyMove.HEAVY_OVERHEAD ? 12 : 5), telegraph);
+            if (e.move() == EnemyMove.DOUBLE_SLASH)
+                text(c, Integer.toString(e.strikeNumber()), e.x + 15, top - 4, 18, telegraph);
+        }
         if (e.posture.broken() && !e.defeated()) {
             rect(c, e.x - 8, e.y - 42, e.x + Enemy.WIDTH + 8, e.y - 25, Color.RED);
             text(c, "!", e.x + 15, e.y - 27, 18, Color.WHITE);
             rect(c, e.x - 8, e.y - 22, e.x - 8 + (Enemy.WIDTH + 16) * e.posture.breakFraction(), e.y - 18, Color.YELLOW);
         }
         if (e.state() == Enemy.State.ATTACK_ACTIVE) {
-            rect(c, e.attackLeft(), e.y + 10, e.attackRight(), e.y + Enemy.HEIGHT - 8, 0xAAFF4444);
+            // Bright body-edge flash marks each active strike even with debug hitboxes hidden.
+            rect(c, e.x - 3, e.y, e.x, e.y + Enemy.HEIGHT,
+                    e.move() == EnemyMove.HEAVY_OVERHEAD ? Color.rgb(255, 150, 60) : Color.RED);
+            if (DEBUG_HITBOXES) rect(c, e.attackLeft(), e.attackTop(), e.attackRight(), e.attackBottom(), 0xAAFF4444);
         }
         if (!e.defeated()) {
             float enemyEye = e.facingRight ? e.x + Enemy.WIDTH - 10 : e.x + 5;
@@ -182,7 +201,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
                             : "Yellow: windup | Red: strike | Purple: recovery",
                     330, 34, 18, p.canDeathblow(e) ? Color.RED : Color.LTGRAY);
         }
-        String[] labels = {"LEFT", "RIGHT", p.defeated() ? "RESTART" : "JUMP", "ATTACK", "GUARD"};
+        String[] labels = {"LEFT", "RIGHT", p.defeated() ? "RESTART" : "JUMP", "ATTACK", "GUARD", "DASH"};
         for (int i = 0; i < Controls.COUNT; i++) {
             int left = Controls.left(i);
             rect(c, left, 425, left + Controls.width(i), 525,

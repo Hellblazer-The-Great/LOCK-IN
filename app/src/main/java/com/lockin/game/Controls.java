@@ -2,8 +2,8 @@ package com.lockin.game;
 
 /** Android-independent multitouch button aggregation and queued press edges. */
 public final class Controls {
-    public static final int LEFT = 0, RIGHT = 1, JUMP = 2, ATTACK = 3, GUARD = 4, COUNT = 5;
-    private static final int[] LEFTS = {20, 140, 700, 820, 570};
+    public static final int LEFT = 0, RIGHT = 1, JUMP = 2, ATTACK = 3, GUARD = 4, DASH = 5, COUNT = 6;
+    private static final int[] LEFTS = {20, 140, 700, 820, 570, 440};
     private int held, queued, guardPresses;
 
     public static int left(int button) { return LEFTS[button]; }
@@ -22,19 +22,25 @@ public final class Controls {
         held = buttons;
     }
     public synchronized Snapshot consume() {
-        Snapshot snapshot = new Snapshot(held, queued, guardPresses);
-        queued = guardPresses = 0;
+        Snapshot snapshot = new Snapshot();
+        consume(snapshot);
         return snapshot;
+    }
+    public synchronized void consume(Snapshot snapshot) {
+        snapshot.set(held, queued, guardPresses);
+        queued = guardPresses = 0;
     }
     public synchronized void clear() { held = queued = guardPresses = 0; }
 
     public static final class Snapshot {
-        public final int move, guardPresses;
-        public final boolean jump, attack, guard, guardPressed;
-        private Snapshot(int held, int queued, int guardPresses) {
+        public int move, guardPresses;
+        public boolean jump, attack, guard, guardPressed, dash;
+        public Snapshot() {}
+        private void set(int held, int queued, int guardPresses) {
             this.guardPresses = guardPresses;
             move = ((held >> RIGHT) & 1) - ((held >> LEFT) & 1);
             jump = (queued & (1 << JUMP)) != 0;
+            dash = (queued & (1 << DASH)) != 0;
             attack = (queued & (1 << ATTACK)) != 0;
             guard = (held & (1 << GUARD)) != 0;
             guardPressed = guard && (queued & (1 << GUARD)) != 0;

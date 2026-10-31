@@ -38,5 +38,13 @@ public final class Posture {
         double recoveryTime = Math.max(0, quietTime - config.recoveryDelay) - before;
         value = Math.max(0, value - config.postureRecovery * recoveryTime);
     }
+    /** Dash escape ends stagger without refunding posture or health already committed. */
+    public boolean cancelBreak() {
+        if (!broken()) return false;
+        brokenTime = 0;
+        immunityTime = Math.max(immunityTime, config.breakImmunity);
+        pressure();
+        return true;
+    }
     public void reset() { value = quietTime = brokenTime = immunityTime = 0; }
 }
