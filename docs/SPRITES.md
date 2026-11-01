@@ -58,3 +58,7 @@ Set `GameScreen.DEBUG_VISUALS` to `true` to see physical bodies, active hitboxes
 - Samurai posture break reuses its hit pose. Heavy uses the actual downward strike plus the longer existing telegraph; it is not a newly invented attack or asset.
 - The packs have different native pixel densities. Uniform scaling aligns body height while retaining the provided art style.
 - Host checks decode every selected source, reject blank frames, exercise animation priorities/phase boundaries/restart/flip metadata and verify landscape viewport geometry. These are not an Android screenshot or physical-device gameplay test. Build/lint and local art-placement previews supplement them; touch delivery, GPU rendering and combat feel still need the existing device checklist.
+
+## v0.3.1 render-size hotfix
+
+The table scales above describe original base scales. All clips now apply SpriteClip.RENDER_SCALE_MULTIPLIER=1.5: final Ninja 2.4×, Samurai 7.5×. Source dimensions, feet anchors and physical bodies are unchanged. See [timing and rendering measurements](TIMING-HOTFIX.md).

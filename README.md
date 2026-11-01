@@ -24,7 +24,9 @@ On Windows use `gradlew.bat`. The Gradle 8.13 wrapper includes a distribution SH
 
 ## Play and verify
 
-Current validation: 1,243 host checks pass; debug APK and Android lint pass (three existing manifest warnings). See [v0.3.1 validation details](docs/WORLD.md#validation-and-limitations).
+The [v0.3.1 timing/sprite hotfix](docs/TIMING-HOTFIX.md) fixes time loss below 20 FPS, caches terrain and enlarges both character types by 1.5×. Debug APK versionCode is 6.
+
+Current validation: 1,516 host checks pass; debug APK and Android lint pass (three existing manifest warnings). See [v0.3.1 validation details](docs/WORLD.md#validation-and-limitations).
 
 Hold LEFT or RIGHT to move; tap JUMP or ATTACK; press/hold the dedicated GUARD button; tap DASH with a held direction, or without a direction to dash backward. Separate fingers can hold movement while tapping either action. Actions trigger on a new press, not continuously while held. Dragging between buttons updates the held state. Releasing/cancelling touches or pausing clears inputs. Opposing movement buttons cancel each other.
 
@@ -140,7 +142,7 @@ Simulation, posture, and button-state logic have no Android dependencies. There 
 
 ## Limits and next steps
 
-This is a three-area prototype with five independent enemies, deterministic ladder/jump navigation, and run-local persistence. There is no audio, scrolling world, disk save, stamina, adaptive AI, inventory, or menu. Large stalls retain the fixed-step elapsed-time cap. Rendering is sleep-paced rather than display-vsync scheduled. See docs/WORLD.md for current limitations.
+This is a three-area prototype with five independent enemies, deterministic ladder/jump navigation, and run-local persistence. There is no audio, scrolling world, disk save, stamina, adaptive AI, inventory, or menu. Fixed-step catch-up retains elapsed time, with bounded work/backlog and explicit reporting of pathological overload. Rendering is sleep-paced rather than display-vsync scheduled. See docs/WORLD.md for current limitations.
 
 ## Verification in this cloud workspace
 

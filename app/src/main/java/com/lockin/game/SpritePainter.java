@@ -19,6 +19,7 @@ public final class SpritePainter {
     private final EnumMap<SpriteClip, Bitmap> sprites = new EnumMap<>(SpriteClip.class);
     private final Map<String, Bitmap> cache = new HashMap<>();
     private final Bitmap[] backgrounds = new Bitmap[5];
+    private final Bitmap[] areaLayers = new Bitmap[3];
     private final Bitmap tiles, terrain;
     private final Paint paint = new Paint();
     private final Rect source = new Rect();
@@ -35,6 +36,14 @@ public final class SpritePainter {
             terrain = bitmap(assets,TerrainArt.SHEET);
             if(terrain.getWidth()!=512 || terrain.getHeight()!=96) throw new IOException("Terrain sheet layout mismatch");
             tiles = bitmap(assets, "sprites/Samurai_Bundle/Map/Zen_Island/Tileset_1.png");
+            // Geometry is immutable. Composite hundreds of static tile draws once, not every frame.
+            for(int i=0;i<areaLayers.length;i++) {
+                Bitmap layer=Bitmap.createBitmap((int)GameWorld.WIDTH,(int)GameWorld.HEIGHT,Bitmap.Config.ARGB_8888);
+                layer.setDensity(Bitmap.DENSITY_NONE); areaLayers[i]=layer; cache.put("area-layer-"+i,layer);
+                Canvas canvas=new Canvas(layer);
+                legacyGround(canvas);
+                drawTerrain(canvas,AreaDefinition.AREAS[i],i);
+            }
         } catch (IOException | RuntimeException error) {
             for (Bitmap bitmap : cache.values()) bitmap.recycle();
             throw new IOException("Cannot load sprite manifest: " + error.getMessage(), error);
@@ -98,7 +107,10 @@ public final class SpritePainter {
         c.drawBitmap(terrain,source,target,paint);
     }
     public void area(Canvas c,AreaDefinition area,int index,float playerCenter) {
-        arena(c,playerCenter);
+        backdrop(c,playerCenter);
+        image(c,areaLayers[index],0,0,GameWorld.WIDTH,GameWorld.HEIGHT);
+    }
+    private void drawTerrain(Canvas c,AreaDefinition area,int index) {
         if(index==0) for(int y=380;y<540;y+=32) for(int x=0;x<960;x+=32) tile(c,y==380?TerrainArt.GRASS:TerrainArt.DIRT,x,y,32,32);
         if(index>0) {
             paint.setColor(index==1?0x88383B50:0xDD242936);c.drawRect(0,0,960,380,paint);
@@ -126,7 +138,7 @@ public final class SpritePainter {
         if(index>0) {tile(c,TerrainArt.DOOR,0,316,64,64);tile(c,TerrainArt.EXIT,8,280,32,32);}
         tile(c,TerrainArt.DOOR,896,316,64,64);tile(c,TerrainArt.EXIT,916,280,32,32);
     }
-    public void arena(Canvas canvas, float playerCenter) {
+    private void backdrop(Canvas canvas, float playerCenter) {
         image(canvas, backgrounds[0], 0, 0, 960, 540);
         // Reposition the pack's existing sun into the open sky, retaining its square aspect ratio.
         source.set(78, 45, 118, 85); target.set(750, 55, 850, 155);
@@ -135,6 +147,8 @@ public final class SpritePainter {
         image(canvas, backgrounds[1], -24 - offset * 8, -40, 984 - offset * 8, 527);
         image(canvas, backgrounds[2], -24 - offset * 16, -40, 984 - offset * 16, 527);
         image(canvas, backgrounds[4], -24 - offset * 24, -40, 984 - offset * 24, 527);
+    }
+    private void legacyGround(Canvas canvas) {
         // One top/dirt tile repeated across the existing flat platform; not a tilemap system.
         source.set(8, 0, 16, 24);
         for (int x = 0; x < 960; x += 40) {
