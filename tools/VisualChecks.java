@@ -58,6 +58,14 @@ public final class VisualChecks {
             check(tile.x+tile.width<=terrain.getWidth()&&tile.y+tile.height<=terrain.getHeight(),"terrain source bounds "+tile);
             check(visible(terrain,tile.x,tile.y,tile.width,tile.height),"terrain entry contains actual pixels "+tile);
         }
+        BufferedImage ninjaIdle=image("sprites/DarkNinja/frames/Idle/01.png");
+        BufferedImage samuraiIdle=image("sprites/Samurai_Bundle/Samurai/Idle/Idle_1.png");
+        // Inspected stance/arm bands exclude the ninja's extended sword at y=31..34.
+        int ninjaWidth=0,samuraiWidth=0;
+        for(int x=0;x<64;x++)if((ninjaIdle.getRGB(x,37)>>>24)!=0)ninjaWidth++;
+        for(int x=0;x<16;x++)if((samuraiIdle.getRGB(x,8)>>>24)!=0)samuraiWidth++;
+        check(Math.abs(ninjaWidth*SpriteClip.NINJA_RENDER_SCALE-samuraiWidth*SpriteClip.SAMURAI_RENDER_SCALE)<5,"visible body/arm stance widths match without stretching weapons");
+        check(Math.abs(WorldDefinition.LADDER_WIDTH-samuraiWidth*SpriteClip.SAMURAI_RENDER_SCALE)<8,"functional ladder width matches visible body scale");
         for (SpriteClip clip : SpriteClip.values()) {
             check(!clip.flip(clip.facesRight) && clip.flip(!clip.facesRight), "native orientation and flip " + clip);
             check(clip.anchorX >= 0 && clip.anchorX < clip.frameWidth && clip.anchorY <= clip.frameHeight,

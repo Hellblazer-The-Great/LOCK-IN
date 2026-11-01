@@ -21,7 +21,7 @@ public final class CoreChecks {
         g.enemy.takeDamage(g.enemy.maxHealth); // Boundary checks now use an unobstructed arena.
         step(g, 2, -1);
         check(g.player.x == 0, "left boundary");
-        step(g, 5, 1);
+        step(g, 6, 1);
         check(g.player.x == GameWorld.WIDTH - Player.WIDTH, "right boundary");
         check(g.player.facingRight, "right facing");
         g.update(1f / 60, 0, true, false);

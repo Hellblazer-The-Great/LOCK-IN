@@ -11,10 +11,25 @@ public final class AreaDefinition {
   public enum Travel {
     LADDER,
     JUMP,
-    DROP
+    DROP,
+    WALK
   }
 
   public record Link(int from, int to, Travel travel, float launch, float destination) {}
+
+  public record Solid(float left, float right, float top, float bottom) {}
+
+  public final float width, height, groundY;
+  public final boolean continuous;
+  private final Solid[] solids;
+
+  public int solidCount() {
+    return solids.length;
+  }
+
+  public Solid solid(int i) {
+    return solids[i];
+  }
 
   public final String name;
   private final Platform[] platforms;
@@ -24,11 +39,45 @@ public final class AreaDefinition {
 
   public AreaDefinition(
       String name, Platform[] platforms, Ladder[] ladders, Spawn[] spawns, Link[] links) {
+    this(name, platforms, ladders, spawns, links, 960, 540, 380, false);
+  }
+
+  public AreaDefinition(
+      String name,
+      Platform[] platforms,
+      Ladder[] ladders,
+      Spawn[] spawns,
+      Link[] links,
+      float width,
+      float height,
+      float groundY,
+      boolean continuous) {
+    this.width = width;
+    this.height = height;
+    this.groundY = groundY;
+    this.continuous = continuous;
     this.name = name;
     this.platforms = platforms.clone();
     this.ladders = ladders.clone();
     this.spawns = spawns.clone();
     this.links = links.clone();
+    java.util.ArrayList<Solid> pieces = new java.util.ArrayList<>();
+    for (int i = 0; i < platforms.length; i++) {
+      Platform deck = platforms[i];
+      java.util.ArrayList<Float> holes = new java.util.ArrayList<>();
+      if (continuous) for (Ladder l : ladders) if (l.top() == i) holes.add(l.x());
+      java.util.Collections.sort(holes);
+      float cursor = deck.left();
+      for (float x : holes) {
+        float edge = x - WorldDefinition.OPENING_WIDTH / 2;
+        if (edge > cursor)
+          pieces.add(new Solid(cursor, edge, deck.top(), i == 0 ? height : deck.top() + 32));
+        cursor = x + WorldDefinition.OPENING_WIDTH / 2;
+      }
+      if (cursor < deck.right())
+        pieces.add(new Solid(cursor, deck.right(), deck.top(), i == 0 ? height : deck.top() + 32));
+    }
+    solids = pieces.toArray(new Solid[0]);
   }
 
   public int platformCount() {

@@ -20,6 +20,7 @@ public final class AreaState {
   public void reset() {
     for (int i = 0; i < enemies.length; i++) {
       Enemy e = enemies[i];
+      e.terrain=definition;
       e.reset();
       AreaDefinition.Spawn s = definition.spawn(i);
       e.x = s.x();

@@ -31,11 +31,11 @@ public final class GuardChecks {
     }
     public static void main(String[] args) {
         contactAt(0, Player.Impact.DEFLECT);
-        contactAt(.249999, Player.Impact.DEFLECT);
-        contactAt(.250, Player.Impact.DEFLECT);
-        contactAt(.250001, Player.Impact.BLOCK);
+        contactAt(.319999, Player.Impact.DEFLECT);
+        contactAt(.320, Player.Impact.DEFLECT);
+        contactAt(.320001, Player.Impact.BLOCK);
         Player p = guardAt(.2); Enemy e = new Enemy();
-        p.setGuard(true, false); p.updateDefense(.1); p.receiveAttack(e);
+        p.setGuard(true, false); p.updateDefense(.13); p.receiveAttack(e);
         check(p.impact() == Player.Impact.BLOCK, "held guard never refreshes window");
         p.setGuard(false, false);
         check(!p.guarding(), "release lowers guard immediately");
@@ -64,7 +64,7 @@ public final class GuardChecks {
         p.setGuard(false, false); e.tryHit(p);
         check(p.health == 100, "release after deflect cannot make same swing hit again");
         e = new Enemy(); p = close(e); active(e, p); p.x = 0; p.setGuard(true, true);
-        e.tryHit(p); p.updateDefense(.251); p.x = e.x - Player.WIDTH - 20; e.tryHit(p);
+        e.tryHit(p); p.updateDefense(.321); p.x = e.x - Player.WIDTH - 20; e.tryHit(p);
         check(p.impact() == Player.Impact.BLOCK, "late overlap after deflect deadline blocks even if active started earlier");
         e = new Enemy(); p = close(e); active(e, p); p.y = 0; p.setGuard(true, true); e.tryHit(p);
         check(e.posture.value() == 0 && p.posture.value() == 0 && p.impact() == Player.Impact.NONE,

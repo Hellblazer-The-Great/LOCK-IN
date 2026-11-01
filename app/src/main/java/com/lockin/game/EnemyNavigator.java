@@ -2,6 +2,9 @@ package com.lockin.game;
 
 /** Small deterministic breadth-first surface graph. A committed edge is held until landing. */
 public final class EnemyNavigator {
+  private final WorldNavigator world=new WorldNavigator();
+  public void yieldTo(float x){world.yieldTo(x);}
+  public boolean yielding(){return world.yielding();}
   private AreaDefinition.Link active;
   private boolean airborne;
   private final int[] queue = new int[8], via = new int[8];
@@ -9,9 +12,11 @@ public final class EnemyNavigator {
   public void reset() {
     active = null;
     airborne = false;
+    world.reset();
   }
 
   public boolean update(Enemy e, Player p, AreaDefinition a, float dt) {
+    if(a.continuous)return world.update(e,p,a,dt);
     if (e.defeated()
         || e.posture.broken()
         || e.state() == Enemy.State.ATTACK_WINDUP

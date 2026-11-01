@@ -49,7 +49,7 @@ public final class WorldChecks {
   }
 
   static void platforms() {
-    Game g = new Game();
+    Game g = Game.screenWorld();
     safe(g);
     floor(g, 340);
     tick(g, 0, 0, true, false, false);
@@ -111,7 +111,7 @@ public final class WorldChecks {
   }
 
   static void persistenceReset() {
-    Game g = new Game();
+    Game g = Game.screenWorld();
     safe(g);
     check(g.areas.length == 3, "exactly three areas");
     check(
@@ -225,7 +225,7 @@ public final class WorldChecks {
   }
 
   static void allActive() {
-    Game g = new Game(CombatConfig.DEFAULT, 10000, 100);
+    Game g = Game.screenWorld(CombatConfig.DEFAULT, 10000, 100);
     safe(g);
     exit(g, 1);
     exit(g, 1);
@@ -237,7 +237,7 @@ public final class WorldChecks {
   }
 
   static void independent() {
-    Game g = new Game();
+    Game g = Game.screenWorld();
     safe(g);
     exit(g, 1);
     exit(g, 1);
@@ -279,7 +279,7 @@ public final class WorldChecks {
   }
 
   static void determinism() {
-    Game a = new Game(), b = new Game();
+    Game a = Game.screenWorld(), b = Game.screenWorld();
     safe(a);
     safe(b);
     floor(a, 430);
@@ -352,7 +352,7 @@ public final class WorldChecks {
 
   static void navigation() {
     for (int index = 0; index < 3; index++) {
-      Game g = new Game(CombatConfig.DEFAULT, 10000, 100);
+      Game g = Game.screenWorld(CombatConfig.DEFAULT, 10000, 100);
       safe(g);
       for (int i = 0; i < index; i++) exit(g, 1);
       for (Enemy e : g.enemies()) e.takeDamage(e.health);
@@ -380,7 +380,7 @@ public final class WorldChecks {
       near(e.y + 70, 380, "enemy descends reachable ladder " + index);
     }
     // Courtyard has a direct, physically simulated jump between its two decks.
-    Game g = new Game();
+    Game g = Game.screenWorld();
     safe(g);
     exit(g, 1);
     Enemy e = g.enemy;
@@ -419,7 +419,7 @@ public final class WorldChecks {
   }
 
   static void playableRun() {
-    Game g = new Game();
+    Game g = Game.screenWorld();
     safe(g);
     killByAttack(g, g.enemy);
     for (int i = 0; i < 1000 && g.areaIndex() == 0; i++) tick(g, 1, 0, false, false, false);

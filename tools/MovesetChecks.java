@@ -61,7 +61,7 @@ public final class MovesetChecks {
             check(p.health == health - 20 * move.damageMultiplier, "health applied once per strike " + move);
             near(p.posture.value(), 25 * move.damageMultiplier, "posture applied once per strike " + move);
             e = prepare(move); p = close(e); active(e, p, 1);
-            p.setGuard(true, true); p.updateDefense(.3); e.tryHit(p);
+            p.setGuard(true, true); p.updateDefense(.4); e.tryHit(p);
             check(p.health == 10000 && p.impact() == Player.Impact.BLOCK, "block prevents health damage " + move);
             near(p.posture.value(), 25 * move.damageMultiplier, "blocked posture damage " + move);
             e = prepare(move); p = close(e); active(e, p, 1); p.posture.add(9999);
@@ -114,10 +114,10 @@ public final class MovesetChecks {
                 "both double slash strikes independently deflect");
         p.setGuard(false, false); near(p.effectiveDeflectWindow(), .25, "legitimate double deflections do not trigger anti-spam");
         e = prepare(EnemyMove.DOUBLE_SLASH); p = close(e); active(e, p, 1);
-        p.setGuard(true, true); p.updateDefense(.3); e.tryHit(p); active(e, p, 2); e.tryHit(p);
+        p.setGuard(true, true); p.updateDefense(.4); e.tryHit(p); active(e, p, 2); e.tryHit(p);
         check(p.health == 10000 && p.posture.value() == 50, "held block handles both double strikes");
         e = prepare(EnemyMove.HEAVY_OVERHEAD); p = new Player(); p.x = e.x - Player.WIDTH - 20;
-        p.posture.add(60); active(e, p, 1); p.setGuard(true, true); p.updateDefense(.3); e.tryHit(p);
+        p.posture.add(60); active(e, p, 1); p.setGuard(true, true); p.updateDefense(.4); e.tryHit(p);
         check(p.health == 100 && p.staggered(), "heavy block triggers posture break through shared rules");
         e = prepare(EnemyMove.DOUBLE_SLASH); p = new Player(); p.x = e.x - Player.WIDTH - 20;
         active(e, p, 1); e.posture.add(9980); p.setGuard(true, true); e.tryHit(p);

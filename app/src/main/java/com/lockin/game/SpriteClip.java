@@ -19,7 +19,7 @@ public enum SpriteClip {
     SAMURAI_HURT("Samurai_Bundle/Samurai/Hit/Samurai_Hit.png", 16, 16, 2, 2, 8, 16, 5, false),
     SAMURAI_DEATH("Samurai_Bundle/Samurai/Death/Samurai_Death_1.png", 32, 16, 7, 3, 8, 16, 5, false);
 
-    public static final float RENDER_SCALE_MULTIPLIER=1.5f;
+    public static final float NINJA_RENDER_SCALE=3.4f, SAMURAI_RENDER_SCALE=8.2f;
     public final String asset;
     public final int frameWidth, frameHeight, frames, columns;
     public final float anchorX, anchorY, scale;
@@ -28,7 +28,7 @@ public enum SpriteClip {
                float anchorX, float anchorY, float scale, boolean facesRight) {
         this.asset = "sprites/" + asset;
         frameWidth = width; frameHeight = height; this.frames = frames; this.columns = columns;
-        this.anchorX = anchorX; this.anchorY = anchorY; this.scale = scale * RENDER_SCALE_MULTIPLIER; this.facesRight = facesRight;
+        this.anchorX = anchorX; this.anchorY = anchorY; this.scale = asset.startsWith("DarkNinja")?NINJA_RENDER_SCALE:SAMURAI_RENDER_SCALE; this.facesRight = facesRight;
     }
     public boolean sequence() { return asset.contains("%02d"); }
     public int sourceX(int frame) { return (frame % columns) * frameWidth; }

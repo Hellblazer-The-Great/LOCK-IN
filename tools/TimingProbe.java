@@ -29,14 +29,10 @@ public final class TimingProbe {
           a.player.frame());
     }
     Game g = new Game(CombatConfig.DEFAULT, 1000000, 1000000);
-    g.player.x = 924;
-    g.update(.05f, 1, false, false);
-    for (int i = 0; i < 50; i++) g.update(.01f, 0, false, false);
-    g.player.x = 924;
-    g.update(.05f, 1, false, false);
-    g.player.x = 500;
+    g.player.x = 2200;
+    g.player.y = WorldDefinition.GROUND-Player.HEIGHT;
     g.player.health = 1000000;
-    for (Enemy e : g.enemies()) e.detectionRadius = 1000;
+    for (Enemy e : g.enemies()) e.detectionRadius = 4000;
     for (int i = 0; i < 10000; i++) g.update(1f / 120, 0, false, false);
     long start = System.nanoTime();
     for (int i = 0; i < 120000; i++) {
@@ -45,7 +41,7 @@ public final class TimingProbe {
     }
     double seconds = (System.nanoTime() - start) / 1e9;
     System.out.printf(
-        "Host three-enemy simulation: %.3fs / 120000 ticks, %.1f us/tick%n",
+        "Host five-enemy continuous-world simulation: %.3fs / 120000 ticks, %.1f us/tick%n",
         seconds, seconds * 1e6 / 120000);
   }
 }

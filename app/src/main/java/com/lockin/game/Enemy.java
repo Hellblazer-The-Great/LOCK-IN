@@ -16,6 +16,8 @@ public final class Enemy {
     public float x = 670, y = GameWorld.GROUND_Y - HEIGHT;
     /** Center-to-center distance in world pixels; zero disables detection for practice/tests. */
     public float velocityY;
+    AreaDefinition terrain;
+    public float worldWidth(){return terrain==null?GameWorld.WIDTH:terrain.width;}
     public boolean grounded=true, climbing;
     public float detectionRadius = DEFAULT_DETECTION_RADIUS;
     public static final int DEFAULT_MAX_HEALTH = 100;
@@ -124,7 +126,7 @@ public final class Enemy {
             state = State.CHASE;
             float distance = Math.min(SPEED * dt, Math.max(0, gap - MELEE_DISTANCE));
             if(!navigating) x += (facingRight ? 1 : -1) * distance;
-            x = Math.max(0, Math.min(GameWorld.WIDTH - WIDTH, x));
+            x = Math.max(0, Math.min(worldWidth() - WIDTH, x));
         }
     }
     public float attackLeft() { return facingRight ? x + WIDTH : x - move.reach; }

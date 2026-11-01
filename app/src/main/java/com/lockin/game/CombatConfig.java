@@ -2,7 +2,7 @@ package com.lockin.game;
 
 /** Immutable, shared tuning in seconds and posture units. No Android dependencies. */
 public final class CombatConfig {
-    public static final CombatConfig DEFAULT = new CombatConfig(.250, 100, 12, 25, 35, 1, 1);
+    public static final CombatConfig DEFAULT = new CombatConfig(.320, 100, 12, 25, 35, 1, 1);
     public final double deflectWindow, postureCapacity, postureRecovery;
     public final double blockDamage, deflectDamage, recoveryDelay, brokenDuration;
 
