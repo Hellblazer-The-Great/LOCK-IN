@@ -1,3 +1,5 @@
+> Historical v0.3.1 screen-world design, retained for regression reference. Production v0.3.2 uses the [continuous castle](CASTLE.md).
+
 # v0.3.1 world and run state
 
 The production `Game` owns three `AreaState` instances for the entire run. Each contains an immutable `AreaDefinition`, its independent `Enemy[]`, and matching `EnemyNavigator[]`. Inactive areas freeze rather than respawn or simulate off-screen. `game.enemy` remains a compatibility alias for the first active enemy; gameplay iterates `game.enemies()`.

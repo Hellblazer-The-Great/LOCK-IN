@@ -1,7 +1,7 @@
 package com.lockin.game;
 
 public final class Player {
-    public static final float WIDTH = 36, HEIGHT = 64, SPEED = 250;
+    public static final float WIDTH = 36, HEIGHT = 64, SPEED = 180;
     public static final float ATTACK_RANGE = 68, ATTACK_DURATION = .16f, COOLDOWN = .45f;
     public static final int DAMAGE = 25;
     public static final double POSTURE_DAMAGE = 25;
@@ -19,7 +19,14 @@ public final class Player {
     int ladder; float dropTime;
     AreaDefinition terrain; int verticalInput;
     public static final int DEFAULT_MAX_HEALTH = 100;
-    public final int maxHealth;
+    public final int baseMaxHealth;
+    public int maxHealth;
+    private int attackMultiplier=1;
+    public int attackMultiplier(){return attackMultiplier;}
+    public void healthUpgrade(){maxHealth=(int)Math.min(Integer.MAX_VALUE,(long)baseMaxHealth+50);health=maxHealth;}
+    public void powerUpgrade(){attackMultiplier=2;}
+    public int healthDamage(){return (int)Math.min(Integer.MAX_VALUE,(long)DAMAGE*attackMultiplier);}
+    public double postureDamage(){return POSTURE_DAMAGE*attackMultiplier;}
     public int health;
     public boolean facingRight = true, grounded = true;
     public enum Impact { NONE, DEFLECT, BLOCK, HIT, POSTURE_BREAK, DEATHBLOW }
@@ -36,9 +43,10 @@ public final class Player {
     public Player() { this(CombatConfig.DEFAULT); }
     public Player(CombatConfig config) { this(config, DEFAULT_MAX_HEALTH); }
     public Player(CombatConfig config, int maxHealth) {
-        this.config = config; this.maxHealth = Math.max(0, maxHealth);
+        this.config = config; this.baseMaxHealth = Math.max(0, maxHealth); this.maxHealth=baseMaxHealth;
         posture = new Posture(config); reset();
     }
+    public float worldWidth(){return terrain==null?GameWorld.WIDTH:terrain.width;}
     public float healthFraction() { return Vitals.fraction(health, maxHealth); }
     public boolean staggered() { return posture.broken(); }
     public double effectiveDeflectWindow() {
@@ -146,6 +154,7 @@ public final class Player {
     }
     public void finishTravel() { attackTime=0;hitThisAttack=true;dashAge=DASH_DURATION;climbing=false;dropTime=0;clearGuard();guardNeedsFreshPress=true; }
     public void reset() {
+        maxHealth=baseMaxHealth;attackMultiplier=1;
         climbing=false; dropTime=0; verticalInput=0;
         x = 180; y = GameWorld.GROUND_Y - HEIGHT; velocityY = 0; health = maxHealth;
         facingRight = grounded = true; attackTime = cooldown = 0; hitThisAttack = false;
@@ -155,6 +164,7 @@ public final class Player {
     }
     public void update(float dt, int move, boolean jump, boolean attack) {
         if (defeated() || !Float.isFinite(dt) || dt <= 0) return;
+        float oldX=x;
         boolean movingDash = dashing(), executing = deathblowing();
         dashCooldown = Math.max(0, dashCooldown - dt);
         deathblowTime = Math.max(0, deathblowTime - dt);
@@ -174,7 +184,7 @@ public final class Player {
         velocityY += GameWorld.GRAVITY * dt;
         y += velocityY * dt;
         if(terrain==null) CollisionManager.resolveWorld(this);
-        else TerrainPhysics.player(this,terrain,oldY,dt,verticalInput,move,jump);
+        else TerrainPhysics.player(this,terrain,oldX,oldY,dt,verticalInput,move,jump);
         if (attack && cooldown == 0) {
             attackTime = ATTACK_DURATION;
             cooldown = COOLDOWN;
@@ -206,7 +216,7 @@ public final class Player {
                 && CollisionManager.overlaps(attackLeft(), y + 10, attackRight(), y + HEIGHT - 8,
                     enemy.x, enemy.y, enemy.x + Enemy.WIDTH, enemy.y + Enemy.HEIGHT)) {
             posture.pressure();
-            enemy.receiveHit(DAMAGE, POSTURE_DAMAGE);
+            enemy.receiveHit(healthDamage(), postureDamage());
             hitThisAttack = true;
         }
     }

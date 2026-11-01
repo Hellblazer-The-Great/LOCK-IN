@@ -15,6 +15,7 @@ public final class Canvas {
 
   public Canvas(Bitmap target) {}
 
+  public void clipRect(float l,float t,float r,float b){}
   public void save() {
     saved.push(new double[] {x, y, sx, sy});
   }

@@ -30,7 +30,7 @@ public final class TimingChecks {
       for (int i = 0; i < fps; i++) g.update(1f / fps, 1, false, false);
       near(g.simulationSeconds(), 1, 1e-6, "simulation keeps wall time at " + fps + " FPS");
       check(g.simulationSteps() == 120, "120 ticks per wall second at " + fps);
-      near(g.player.x, 430, .02, "normal movement distance at " + fps);
+      near(g.player.x, 180+Player.SPEED, .02, "normal movement distance at " + fps);
       check(g.droppedSeconds() == 0, "ordinary slow rendering discards no time at " + fps);
       g = practice();
       g.player.startDash(1);
@@ -126,7 +126,7 @@ public final class TimingChecks {
     check(g.simulationSteps() == 0, "invalid clock intervals ignored");
     for (SpriteClip clip : SpriteClip.values()) {
       boolean ninja = clip.name().startsWith("NINJA");
-      near(clip.scale, ninja ? 2.4 : 7.5, .00001, "uniform 1.5x render size " + clip);
+      near(clip.scale, ninja ? 3.4 : 8.2, .00001, "uniform 1.5x render size " + clip);
       near((-clip.anchorY + clip.anchorY) * clip.scale, 0, 0, "feet anchor stays fixed " + clip);
       check(clip.flip(true) != clip.flip(false), "facing preserved " + clip);
     }
@@ -134,7 +134,7 @@ public final class TimingChecks {
         Player.WIDTH == 36 && Player.HEIGHT == 64 && Enemy.WIDTH == 44 && Enemy.HEIGHT == 70,
         "physics bodies unchanged");
     check(
-        Player.SPEED == 250 && Enemy.SPEED == 110 && Player.ATTACK_RANGE == 68,
+        Player.SPEED == 180 && Enemy.SPEED == 110 && Player.ATTACK_RANGE == 68,
         "balance constants unchanged");
     System.out.println("Passed " + checks + " real-time/scale/telemetry checks");
   }

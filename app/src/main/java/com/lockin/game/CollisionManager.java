@@ -3,7 +3,7 @@ package com.lockin.game;
 public final class CollisionManager {
     private CollisionManager() {}
     public static void resolveWorld(Player p) {
-        p.x = Math.max(0, Math.min(GameWorld.WIDTH - Player.WIDTH, p.x));
+        p.x = Math.max(0, Math.min(p.worldWidth() - Player.WIDTH, p.x));
         if (p.y + Player.HEIGHT >= GameWorld.GROUND_Y) {
             p.y = GameWorld.GROUND_Y - Player.HEIGHT;
             p.velocityY = 0;
@@ -16,12 +16,12 @@ public final class CollisionManager {
     /** Initial overlap/descending into a body: move the player to the nearest valid side.
      * The enemy never pushes a non-overlapping player; corpses have no body collision. */
     public static void resolveBodies(Player p, Enemy e) {
-        p.x = Math.max(0, Math.min(GameWorld.WIDTH - Player.WIDTH, p.x));
-        e.x = Math.max(0, Math.min(GameWorld.WIDTH - Enemy.WIDTH, e.x));
+        p.x = Math.max(0, Math.min(p.worldWidth() - Player.WIDTH, p.x));
+        e.x = Math.max(0, Math.min(e.worldWidth() - Enemy.WIDTH, e.x));
         if (p.defeated() || e.defeated() || !verticalOverlap(p, e)
                 || p.x + Player.WIDTH <= e.x || p.x >= e.x + Enemy.WIDTH) return;
         float left = e.x - Player.WIDTH, right = e.x + Enemy.WIDTH;
-        boolean leftValid = left >= 0, rightValid = right <= GameWorld.WIDTH - Player.WIDTH;
+        boolean leftValid = left >= 0, rightValid = right <= p.worldWidth() - Player.WIDTH;
         if (leftValid && (!rightValid || Math.abs(p.x - left) <= Math.abs(right - p.x))) p.x = left;
         else p.x = right;
     }
@@ -54,7 +54,7 @@ public final class CollisionManager {
         if (p.defeated() || e.defeated() || !verticalOverlap(p, e)) return;
         if (oldX + Enemy.WIDTH <= p.x && e.x + Enemy.WIDTH > p.x) e.x = p.x - Enemy.WIDTH;
         else if (oldX >= p.x + Player.WIDTH && e.x < p.x + Player.WIDTH) e.x = p.x + Player.WIDTH;
-        e.x = Math.max(0, Math.min(GameWorld.WIDTH - Enemy.WIDTH, e.x));
+        e.x = Math.max(0, Math.min(e.worldWidth() - Enemy.WIDTH, e.x));
         resolveBodies(p, e);
     }
     /** Vertical pursuit must stop at a player's body rather than push the player off a ladder. */
@@ -71,7 +71,15 @@ public final class CollisionManager {
         if(oldX+Enemy.WIDTH<=b.x+.01f && a.x+Enemy.WIDTH>b.x) a.x=b.x-Enemy.WIDTH;
         else if(oldX>=b.x+Enemy.WIDTH-.01f && a.x<b.x+Enemy.WIDTH) a.x=b.x+Enemy.WIDTH;
         else if(a.x<b.x+Enemy.WIDTH && a.x+Enemy.WIDTH>b.x) a.x=oldX;
-        a.x=Math.max(0,Math.min(GameWorld.WIDTH-Enemy.WIDTH,a.x));
+        a.x=Math.max(0,Math.min(a.worldWidth()-Enemy.WIDTH,a.x));
+    }
+    public static void resolveEnemies(Enemy a,Enemy b,float oldX,float oldY) {
+        if(a.defeated()||b.defeated())return;
+        if(a.x<b.x+Enemy.WIDTH&&a.x+Enemy.WIDTH>b.x){
+            if(oldY+Enemy.HEIGHT<=b.y+.001f&&a.y+Enemy.HEIGHT>b.y){a.y=b.y-Enemy.HEIGHT;a.velocityY=0;}
+            else if(oldY>=b.y+Enemy.HEIGHT-.001f&&a.y<b.y+Enemy.HEIGHT){a.y=b.y+Enemy.HEIGHT;a.velocityY=0;}
+        }
+        resolveEnemies(a,b,oldX);
     }
     public static boolean overlaps(float l, float t, float r, float b,
                                    float l2, float t2, float r2, float b2) {

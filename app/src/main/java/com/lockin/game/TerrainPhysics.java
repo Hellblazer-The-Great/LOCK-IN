@@ -33,7 +33,8 @@ public final class TerrainPhysics {
   }
 
   public static void player(
-      Player p, AreaDefinition area, float oldY, float dt, int vertical, int move, boolean jump) {
+      Player p, AreaDefinition area, float oldX, float oldY, float dt, int vertical, int move, boolean jump) {
+    if(area.continuous){SolidPhysics.player(p,area,oldX,oldY,dt,vertical,move,jump);return;}
     p.dropTime = Math.max(0, p.dropTime - dt);
     if (vertical > 0
         && p.grounded

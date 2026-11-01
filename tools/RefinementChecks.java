@@ -2,6 +2,8 @@ package com.lockin.game;
 
 /** v0.2.3 deterministic combat, tuning, and bar regression checks. */
 public final class RefinementChecks {
+    // Retain original tuning coverage; GuardChecks and CastleChecks verify the new default.
+    private static final CombatConfig ORIGINAL=new CombatConfig(.25,100,12,25,35,1,1);
     private static final float DT = 1f / 120;
     private static int checks;
     private static void check(boolean value, String message) {
@@ -14,10 +16,10 @@ public final class RefinementChecks {
         p.setGuard(true, true); p.updateDefense(.03); p.setGuard(false, false);
     }
     private static Player close(Enemy e) {
-        Player p = new Player(); p.x = e.x - Player.WIDTH - 20; return p;
+        Player p = new Player(ORIGINAL); p.x = e.x - Player.WIDTH - 20; return p;
     }
     public static void main(String[] args) {
-        Player p = new Player();
+        Player p = new Player(ORIGINAL);
         near(p.effectiveDeflectWindow(), .25, "initial window");
         failedTap(p); near(p.effectiveDeflectWindow(), .2, "first unsuccessful tap penalty");
         failedTap(p); near(p.effectiveDeflectWindow(), .15, "progressive tap penalty");
@@ -38,11 +40,11 @@ public final class RefinementChecks {
             check(p.impact() == Player.Impact.DEFLECT, "legitimate rapid deflection " + i);
             p.setGuard(false, false); near(p.effectiveDeflectWindow(), .25, "success chain keeps full window");
         }
-        p = new Player(); failedTap(p); p.setGuard(true, true); p.updateDefense(1);
+        p = new Player(ORIGINAL); failedTap(p); p.setGuard(true, true); p.updateDefense(1);
         p.setGuard(true, false); p.receiveAttack(new Enemy());
         check(p.impact() == Player.Impact.BLOCK, "recovery while held cannot reopen a timed-out window");
         p.setGuard(false, false); near(p.effectiveDeflectWindow(), .25, "long held block is not an unsuccessful tap");
-        p = new Player(); for (int i = 0; i < 4; i++) failedTap(p);
+        p = new Player(ORIGINAL); for (int i = 0; i < 4; i++) failedTap(p);
         p.setGuard(true, true); p.updateDefense(.04); p.receiveAttack(new Enemy());
         p.updateDefense(.1); p.receiveAttack(new Enemy());
         check(p.impact() == Player.Impact.DEFLECT, "success restores full window for a rapid follow-up hit");
@@ -52,7 +54,7 @@ public final class RefinementChecks {
         for (int i = 0; i < 3; i++) { controls.setHeld(1 << Controls.GUARD); controls.setHeld(0); }
         Controls.Snapshot input = controls.consume();
         check(input.guardPresses == 3 && !input.guard, "all completed taps between frames counted");
-        p = new Player(); p.setGuard(input.guard, input.guardPresses);
+        p = new Player(ORIGINAL); p.setGuard(input.guard, input.guardPresses);
         near(p.effectiveDeflectWindow(), .1, "completed taps still incur penalty");
         controls.setHeld(1 << Controls.GUARD); controls.setHeld(1 << Controls.GUARD);
         check(controls.consume().guardPresses == 1, "held pointer events do not add presses");
@@ -62,7 +64,7 @@ public final class RefinementChecks {
         p = new Player(custom); failedTap(p); near(p.effectiveDeflectWindow(), .275, "custom penalty step");
         p.updateDefense(.4); near(p.effectiveDeflectWindow(), .3, "custom penalty recovery");
 
-        p = new Player(); e = new Enemy(); p.posture.add(99.999);
+        p = new Player(ORIGINAL); e = new Enemy(); p.posture.add(99.999);
         p.setGuard(true, true); p.receiveAttack(e);
         check(!p.staggered() && p.health == 100, "deflect near maximum posture never breaks defender");
         near(p.posture.value(), 99.999, "deflect does not add defender posture");

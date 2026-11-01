@@ -62,3 +62,7 @@ Set `GameScreen.DEBUG_VISUALS` to `true` to see physical bodies, active hitboxes
 ## v0.3.1 render-size hotfix
 
 The table scales above describe original base scales. All clips now apply SpriteClip.RENDER_SCALE_MULTIPLIER=1.5: final Ninja 2.4×, Samurai 7.5×. Source dimensions, feet anchors and physical bodies are unchanged. See [timing and rendering measurements](TIMING-HOTFIX.md).
+
+## v0.3.2 stance widths
+
+Final uniform scales are Ninja 3.4 and Samurai 8.2. Inspected body/arm stance bands span 24/10 source pixels (about 81.6/82 rendered pixels); the ninja sword is excluded from body-width matching. Feet anchors and collision dimensions remain separate. Functional ladders are 80 pixels wide. See [continuous castle details](CASTLE.md).

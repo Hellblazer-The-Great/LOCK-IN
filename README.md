@@ -1,8 +1,8 @@
-# LOCK IN — v0.3.1: Three Playable Areas
+# LOCK IN — v0.3.2: Continuous Shinobi Castle
 
-A native Java Android action-platformer with three connected single-screen areas and five independent enemies. DarkNinja and Samurai Fighter animations render through SurfaceView/Canvas over committed terrain art. Guard, deflection, posture, deathblows, and dash combat retain their v0.2.4 timings. No Kotlin or game engine.
+A native Java Android action-platformer with a continuous **2,880×1,080** castle world, smooth two-axis camera, five independent enemies, solid floors and wide ladder openings. Explore elevated Training Grounds and Upper Courtyard routes for +50 maximum HP/full healing and double attack power. The performance hotfix, guard/deflection, posture, deathblows and dash remain in place. No Kotlin or game engine.
 
-See [areas, ladders, navigation, reset, assets and limitations](docs/WORLD.md).
+See [world, camera, upgrades, collision rules, tuning and limitations](docs/CASTLE.md).
 
 See [sprite mappings, verified layouts, animation priorities, and visual compromises](docs/SPRITES.md).
 
@@ -24,15 +24,15 @@ On Windows use `gradlew.bat`. The Gradle 8.13 wrapper includes a distribution SH
 
 ## Play and verify
 
-The [v0.3.1 timing/sprite hotfix](docs/TIMING-HOTFIX.md) fixes time loss below 20 FPS, caches terrain and enlarges both character types by 1.5×. Debug APK versionCode is 6.
+The [timing hotfix](docs/TIMING-HOTFIX.md) remains in effect. v0.3.2 keeps 120 Hz simulation, bounded catch-up and timing diagnostics; terrain is cached in small culled chunks. VersionCode is 7.
 
-Current validation: 1,516 host checks pass; debug APK and Android lint pass (three existing manifest warnings). See [v0.3.1 validation details](docs/WORLD.md#validation-and-limitations).
+Current validation: **1,737 checks pass**; debug APK and Android lint pass (zero errors, three existing manifest warnings). Physical-device performance is unverified.
 
 Hold LEFT or RIGHT to move; tap JUMP or ATTACK; press/hold the dedicated GUARD button; tap DASH with a held direction, or without a direction to dash backward. Separate fingers can hold movement while tapping either action. Actions trigger on a new press, not continuously while held. Dragging between buttons updates the held state. Releasing/cancelling touches or pausing clears inputs. Opposing movement buttons cancel each other.
 
-Walk toward the enemy and face it. Attack animation follows the active strike; optional debug mode shows its hitbox. Each strike deals 25 damage at most once, lasts 0.16 seconds, and has a 0.45-second cooldown. Four ordinary hits defeat the default 100 HP enemy; higher maximum health takes more hits. A hit requires both horizontal and vertical overlap. The enemy detects the player within a configurable 340-world-pixel center radius, approaches at 110 pixels/second, and stops at a 30-pixel body gap. Detection includes vertical distance. It faces the player while idle/chasing and commits its facing throughout each move. A lethal player strike resolves first and cancels an enemy strike in that simulation step.
+Walk toward the enemy and face it. Attack animation follows the active strike; optional debug mode shows its hitbox. Each unupgraded strike deals 25 health and 25 posture damage at most once, lasts 0.16 seconds, and has a 0.45-second cooldown. Four ordinary hits defeat the default 100 HP enemy; higher maximum health takes more hits. A hit requires both horizontal and vertical overlap. The enemy detects the player within a configurable 340-world-pixel center radius, approaches at 110 pixels/second, and stops at a 30-pixel body gap. Detection includes vertical distance. It faces the player while idle/chasing and commits its facing throughout each move. A lethal player strike resolves first and cancels an enemy strike in that simulation step.
 
-UP/DOWN climb ladders; DOWN away from a ladder drops through elevated decks. Walk to the ground-level right/left doors to change areas. The top-center RESET button pauses and offers CONFIRM/CANCEL. Confirm replays the entire run with all five enemies restored.
+Release horizontal input and use UP/DOWN to climb ladders. At the top, hold LEFT/RIGHT to pull onto the floor. DOWN on ordinary solid floors does nothing; ceilings and floor sides block movement. Travel continuously across all three named regions, with no entrance teleportation. Ordinary movement is 180 px/s; dash remains 950 px/s. Glowing roof rewards grant +50 maximum HP/full healing and 2× player hit health/posture damage once per run. The top-center RESET button pauses and offers CONFIRM/CANCEL. Confirm replays the entire run with all five enemies restored.
 
 ## Dash
 
@@ -56,11 +56,11 @@ Double slash separates its two active events with a **280 ms windup**; each can 
 
 Unblocked enemy strikes apply baseline **20 HP + 25 posture**; heavy applies **40 HP + 50 posture**. Blocks prevent HP damage and add **25 posture**, or **50** for heavy. Deflections prevent HP damage and add **35 attacker posture**, or **70** for heavy, with no defender posture damage. Ordinary player strikes apply **25 HP + 25 enemy posture**. Both components of a living hit are committed even when health damage is lethal; later contacts on corpses do nothing. Each individual strike resolves once. A dash-invulnerable contact consumes that strike with no health, posture, block or deflect effect, so a lingering hitbox cannot catch the same dodge as i-frames expire.
 
-Enemy windup, strike and follow-through now use phase-synchronized Samurai animation frames. Heavy uses a downward strike, longer preparation and orange HEAVY marker; double slash uses distinct forward/return swing ranges and labels each preparation. Dash reuses the ninja run pose with a faint sprite trail. Collision and hitbox overlays can be enabled with `GameScreen.DEBUG_VISUALS`; they are hidden by default. The HUD labels the current state and shows both health bars. Dead enemies disappear and stop attacking. `Enemy.detectionRadius` controls detection; zero disables it for stationary practice/regression tests.
+Enemy windup, strike and follow-through now use phase-synchronized Samurai animation frames. Heavy uses a downward strike, longer preparation and orange HEAVY marker; double slash uses distinct forward/return swing ranges and labels each preparation. Dash reuses the ninja run pose with a faint sprite trail. Collision and hitbox overlays can be enabled with `GameScreen.DEBUG_VISUALS`; they are hidden by default. The HUD shows player vitals and remaining enemies; each enemy has overhead health/posture bars. Dead enemies retain their corpse animation and stop attacking. `Enemy.detectionRadius` controls detection; zero disables it for stationary practice/regression tests.
 
 ## Guard, deflection, and posture
 
-GUARD raises immediately on its press edge. Enemy hitbox contact within the initial **250 ms (inclusive)** deflects: no health damage, +35 enemy posture. Holding longer blocks: no health damage, +25 player posture. Releasing lowers guard. A held button never refreshes timing. Missing the body or merely entering the active state produces no impact; each swing can resolve at most once.
+GUARD raises immediately on its press edge. Enemy hitbox contact within the initial **320 ms (inclusive)** deflects: no health damage, +35 enemy posture. Holding longer blocks: no health damage, +25 player posture. Releasing lowers guard. A held button never refreshes timing. Missing the body or merely entering the active state produces no impact; each swing can resolve at most once.
 
 Unsuccessful short taps reduce the next window by **50 ms**, down to **50 ms**. Success resets the penalty and restores the full window without resetting the original press timestamp. The penalty clears after **0.8 seconds** without another unsuccessful tap. A hold lasting at least 0.8 seconds is not classified as a failed tap. There is no guard input cooldown or activation delay. Successful rapid deflections remain unpenalized. Input snapshots count every press, even several completed taps between rendered frames.
 
@@ -81,6 +81,8 @@ Feedback: DEFLECT is yellow with contact rays; BLOCK cyan; HIT red; player POSTU
 
 ## Tuning locations
 
+- `WorldDefinition.java`: authored floors, ladder openings, graph connections, world bounds, spawns and collectible coordinates.
+- `SpriteClip.java`: uniform player/enemy render scales.
 - `Player.java`: `DAMAGE`, `POSTURE_DAMAGE`, `DEFAULT_MAX_HEALTH`, movement/jump/attack constants, `DASH_DURATION`, `DASH_IFRAMES`, `DASH_COOLDOWN`, `DASH_SPEED`, `DEATHBLOW_DURATION`. I-frame start/end derive from duration and iframe length.
 - `Enemy.java`: `DAMAGE`, `POSTURE_DAMAGE`, `DEFAULT_MAX_HEALTH`, detection/chase/engagement constants. Its baseline attack constants feed normal slash.
 - `EnemyMove.java`: move windup/active/recovery, strike count, multiplier, between-strike delay, reach/top/height and `BETWEEN_MOVES`.
@@ -88,7 +90,7 @@ Feedback: DEFLECT is yellow with contact rays; BLOCK cyan; HIT red; player POSTU
 
 ## Solid body collision
 
-Living bodies are separate from attack hitboxes. Player movement sweeps against the stationary enemy, then enemy pursuit sweeps against the player's resolved position without pushing the player. Vertical sweep intervals prevent diagonal tunneling; fixed 120 Hz ticks and the 50 ms stall cap are retained. An initial overlap or descent into a body places the player on the nearest valid side within world bounds. Jumping completely above the enemy permits crossing and landing on the other side; the enemy is not a standable platform. Corpses do not obstruct. Touching does not change facing or prevent melee contact.
+Living bodies are separate from attack hitboxes. Player movement sweeps against the stationary enemy, then enemy pursuit sweeps against the player's resolved position without pushing the player. Vertical sweep intervals prevent diagonal tunneling; fixed 120 Hz ticks and bounded catch-up are retained. An initial overlap or descent into a body places the player on the nearest valid side within world bounds. Jumping completely above the enemy permits crossing and landing on the other side; the enemy is not a standable platform. Corpses do not obstruct. Touching does not change facing or prevent melee contact.
 
 Manual device checklist (requires a real device or emulator):
 
@@ -100,7 +102,7 @@ Manual device checklist (requires a real device or emulator):
 - Break both posture meters: verify player stagger/grace, enemy attack cancellation, range/facing deathblow prompt, opportunity expiry, and ATTACK execution. Verify only one effect per swing.
 - Increase actor maxima to 400 and 10,000; check HUD and overhead bars at full/half health, death, and restart.
 - Walk into both enemy sides, move away, jump over it, and walk through its corpse; check no overlap, pushing, jitter or clipping.
-- Jump lands on the platform, cannot double jump, and movement respects boundaries and traverses authored ground-level exits.
+- Jump lands on the platform, cannot double jump, and movement respects boundaries and traverses the continuous lower route and elevated solid floors.
 - Attacks miss when out of range, facing away, or above the target; one swing never causes multiple damage ticks.
 - Verify both enemy facing directions, avoid an attack by moving out of range or jumping during windup, observe recovery, lose all health, and use RESET. Confirm CANCEL preserves progress and held touches cannot attack behind the modal.
 - Defeat the enemy, then background/foreground and lock/unlock during movement. Verify paused simulation, cleared input, and one resumed rendering loop.
@@ -124,16 +126,18 @@ This compiles the production simulation directly and checks boundaries, jump/lan
 
 ## Architecture and units
 
-- `Game`: simulation update and combat coordination; clamps stall recovery to 50 ms and advances fixed 1/120-second ticks, retaining action edges across shorter render frames.
+- `Game`: continuous run state, pickups, reset/completion and fixed 1/120-second combat ticks, retaining elapsed time and input edges with bounded catch-up.
 - `Player`: position, velocity, grounded/facing state, health, attack timing and per-strike hit state.
 - `Enemy` / `EnemyMove`: Android-independent IDLE / CHASE / ATTACK_WINDUP / ATTACK_ACTIVE / ATTACK_RECOVERY / POSTURE_BROKEN / DEAD state machine, movement, facing, attack timing and damage.
-- `GameWorld`: fixed 960 × 540 logical world; origin top left, +x right, +y down, distances in logical pixels and speeds in logical pixels/second. Ground is y=380.
+- `WorldDefinition` / `AreaDefinition` / `AreaState`: authored 2,880×1,080 geometry, ladder apertures, navigation graph and five persistent enemies. `GameWorld` retains the 960×540 viewport and legacy test-arena constants. Origin is top left; units are logical pixels and seconds.
+- `SolidPhysics` / `WorldNavigator` / `LadderTraffic`: swept floors/ceilings/sides, ladder traversal, surface routing and bounded yielding at occupied exits.
+- `Camera` / `ChunkLayout`: render-only smoothed two-axis follow, world bounds and small scenery cache sections.
 - `CollisionManager`: world/ground resolution and axis-aligned hitbox overlap. Solid body sweeps are independent of attack hitboxes; living actors cannot pass through each other at overlapping heights.
 - `CombatConfig` / `Posture`: configurable, Android-independent posture and recovery/break timers.
 - `Controls`: synchronized held-button masks and queued press edges; shared render/input button bounds.
-- `InputHandler`: Android MotionEvent adapter, aggregating all non-lifted pointers into `Controls`. Button coordinates share the world transform.
+- `InputHandler`: Android MotionEvent adapter, aggregating all non-lifted pointers into `Controls`. Button coordinates use the fixed viewport transform, independent of the camera.
 - `SpriteClip` / `AnimationClock` / `CharacterAnimations`: Android-independent asset descriptors, animation playback and read-only visual state selection.
-- `SpritePainter`: explicit cached image loading, pixel-friendly sprite drawing and lightweight layered arena.
+- `SpritePainter`: explicit cached image loading, pixel-friendly sprite drawing and culled cached world chunks.
 - `Viewport`: shared uniform landscape scaling.
 - `GameScreen`: drawing, touch-coordinate conversion, Surface lifecycle and a paced rendering thread capped around 60 FPS. Updates precede rendering; simulation and drawing share one thread.
 - `MainActivity`: entry point, safe system-bar insets and lifecycle forwarding.
@@ -142,7 +146,7 @@ Simulation, posture, and button-state logic have no Android dependencies. There 
 
 ## Limits and next steps
 
-This is a three-area prototype with five independent enemies, deterministic ladder/jump navigation, and run-local persistence. There is no audio, scrolling world, disk save, stamina, adaptive AI, inventory, or menu. Fixed-step catch-up retains elapsed time, with bounded work/backlog and explicit reporting of pathological overload. Rendering is sleep-paced rather than display-vsync scheduled. See docs/WORLD.md for current limitations.
+This is a compact continuous-world prototype with five enemies and run-local upgrades/persistence. There is no disk save, stamina, adaptive AI, inventory or menu. Ladder traffic uses local yielding rather than advanced crowd planning. Fixed-step catch-up retains elapsed time, with bounded work/backlog and explicit overload reporting. Rendering is sleep-paced rather than display-vsync scheduled. See [current limitations](docs/CASTLE.md#validation-and-limits).
 
 ## Verification in this cloud workspace
 
