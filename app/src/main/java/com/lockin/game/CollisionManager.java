@@ -57,6 +57,22 @@ public final class CollisionManager {
         e.x = Math.max(0, Math.min(GameWorld.WIDTH - Enemy.WIDTH, e.x));
         resolveBodies(p, e);
     }
+    /** Vertical pursuit must stop at a player's body rather than push the player off a ladder. */
+    public static void resolveEnemyMovement(Enemy e,Player p,float oldX,float oldY) {
+        if(!e.defeated() && !p.defeated() && e.x<p.x+Player.WIDTH && e.x+Enemy.WIDTH>p.x) {
+            if(oldY+Enemy.HEIGHT<=p.y && e.y+Enemy.HEIGHT>p.y) {e.y=p.y-Enemy.HEIGHT;e.velocityY=0;}
+            else if(oldY>=p.y+Player.HEIGHT && e.y<p.y+Player.HEIGHT) {e.y=p.y+Player.HEIGHT;e.velocityY=0;}
+        }
+        resolveEnemyMovement(e,p,oldX);
+    }
+    /** Each opponent stops against other living opponents rather than sharing a body. */
+    public static void resolveEnemies(Enemy a,Enemy b,float oldX) {
+        if(a.defeated() || b.defeated() || a.y>=b.y+Enemy.HEIGHT || a.y+Enemy.HEIGHT<=b.y) return;
+        if(oldX+Enemy.WIDTH<=b.x+.01f && a.x+Enemy.WIDTH>b.x) a.x=b.x-Enemy.WIDTH;
+        else if(oldX>=b.x+Enemy.WIDTH-.01f && a.x<b.x+Enemy.WIDTH) a.x=b.x+Enemy.WIDTH;
+        else if(a.x<b.x+Enemy.WIDTH && a.x+Enemy.WIDTH>b.x) a.x=oldX;
+        a.x=Math.max(0,Math.min(GameWorld.WIDTH-Enemy.WIDTH,a.x));
+    }
     public static boolean overlaps(float l, float t, float r, float b,
                                    float l2, float t2, float r2, float b2) {
         return l < r2 && r > l2 && t < b2 && b > t2;

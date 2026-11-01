@@ -12,10 +12,11 @@ public final class CharacterAnimations {
     private double enemyHurt;
     public Pose playerPose() { return playerPose; }
     public Pose enemyPose() { return enemyPose; }
-    public void reset(Game game) {
+    public void reset(Game game) { reset(game,game.enemy); }
+    private void reset(Game game,Enemy foe) {
         player.reset(); enemy.reset();
-        previousPlayerX = game.player.x; previousEnemyX = game.enemy.x;
-        previousEnemyHealth = game.enemy.maxHealth; enemyHurt = 0;
+        previousPlayerX = game.player.x; previousEnemyX = foe.x;
+        previousEnemyHealth = foe.maxHealth; enemyHurt = 0;
         restart = game.restartVersion();
     }
     private void p(Pose pose, SpriteClip clip, int first, int last, double fps, boolean loop) {
@@ -24,8 +25,9 @@ public final class CharacterAnimations {
     private void e(Pose pose, SpriteClip clip, int first, int last, double fps, boolean loop, int strike) {
         enemyPose = pose; enemy.play(clip, first, last, fps, loop, pose.ordinal() * 10 + strike);
     }
-    public void update(Game game, double dt) {
-        if (restart != game.restartVersion()) reset(game);
+    public void update(Game game,double dt) { update(game,dt,game.enemy); }
+    public void update(Game game,double dt,Enemy foe) {
+        if (restart != game.restartVersion()) reset(game,foe);
         dt = Double.isFinite(dt) ? Math.max(0, Math.min(.05, dt)) : 0;
         Player actor = game.player;
         boolean running = Math.abs(actor.x - previousPlayerX) > .001f;
@@ -48,6 +50,7 @@ public final class CharacterAnimations {
             p(Pose.HURT, SpriteClip.NINJA_HURT, 0, 2, 12, false);
             player.sample(actor.impactProgress()); synced = true;
         } else if (actor.guarding()) p(Pose.GUARD, SpriteClip.NINJA_GUARD, 0, 7, 12, false);
+        else if (actor.climbing) p(Pose.RUN, SpriteClip.NINJA_RUN, 0, 7, 8, true);
         else if (!actor.grounded) {
             if (actor.velocityY < 0) p(Pose.JUMP, SpriteClip.NINJA_JUMP, 0, 5, 12, false);
             else p(Pose.FALL, SpriteClip.NINJA_JUMP, 8, 11, 12, false);
@@ -57,7 +60,7 @@ public final class CharacterAnimations {
         else p(Pose.IDLE, SpriteClip.NINJA_IDLE, 0, 7, 12, true);
         if (!synced) player.advance(dt);
 
-        Enemy foe = game.enemy;
+
         enemyHurt = Math.max(0, enemyHurt - dt);
         if (foe.health < previousEnemyHealth) enemyHurt = .18;
         boolean chasing = Math.abs(foe.x - previousEnemyX) > .001f;
@@ -76,7 +79,7 @@ public final class CharacterAnimations {
             else e(Pose.RECOVERY, clip, heavy ? 6 : second ? 14 : 8, heavy ? 10 : second ? 17 : 9, 12, false, foe.strikeNumber());
             enemy.sample(foe.phaseProgress()); synced = true;
         } else if (enemyHurt > 0) e(Pose.HURT, SpriteClip.SAMURAI_HURT, 0, 1, 12, false, 0);
-        else if (chasing) e(Pose.RUN, SpriteClip.SAMURAI_RUN, 0, 5, 12, true, 0);
+        else if (chasing || foe.climbing || !foe.grounded) e(Pose.RUN, SpriteClip.SAMURAI_RUN, 0, 5, 12, true, 0);
         else e(Pose.IDLE, SpriteClip.SAMURAI_IDLE, 0, 2, 8, true, 0);
         if (!synced) enemy.advance(dt);
         previousPlayerX = actor.x; previousEnemyX = foe.x; previousEnemyHealth = foe.health;

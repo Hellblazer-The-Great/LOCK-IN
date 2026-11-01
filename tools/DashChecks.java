@@ -77,32 +77,32 @@ public final class DashChecks {
         p.update(.299f, 1, true, true); check(!p.startDash(1) && p.grounded && !p.attacking(), "execution lock prevents action cancellation");
         p.update(.001f, 0, false, false); check(p.startDash(1), "dash available after deathblow execution ends");
 
-        Game g = new Game(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
+        Game g = Game.combatArena(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
         for (int i = 0; i < 30; i++) g.update(DT, 1, false, false, false, 0, i == 0);
         check(g.player.x + Player.WIDTH == g.enemy.x, "dash cannot pass through solid enemy even with iframes");
-        g = new Game(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x + Enemy.WIDTH + 20;
+        g = Game.combatArena(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x + Enemy.WIDTH + 20;
         for (int i = 0; i < 30; i++) g.update(DT, -1, false, false, false, 0, i == 0);
         check(g.player.x == g.enemy.x + Enemy.WIDTH, "leftward dash respects solid enemy");
-        g = new Game(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
+        g = Game.combatArena(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
         g.player.y = 220; g.player.grounded = false;
         for (int i = 0; i < 24; i++) g.update(DT, 1, false, false, false, 0, i == 0);
         check(g.player.x >= g.enemy.x + Enemy.WIDTH, "air dash crosses above non-overlapping enemy body");
-        g = new Game(); g.enemy.detectionRadius = 0;
+        g = Game.combatArena(); g.enemy.detectionRadius = 0;
         g.update(1f / 240, 0, false, false, false, 0, true);
         g.update(1f / 240, 0, false, false, false, 0, false);
         check(g.player.dashing(), "dash edge retained across sub-tick render frames");
-        g = new Game(); g.player.x = g.enemy.x - Player.WIDTH - 20; g.enemy.deflected(100);
+        g = Game.combatArena(); g.player.x = g.enemy.x - Player.WIDTH - 20; g.enemy.deflected(100);
         g.update(DT, 0, false, true, false, 0, true);
         check(g.enemy.defeated() && g.player.deathblowing() && !g.player.dashing(), "simultaneous eligible deathblow takes priority over dash");
-        g = new Game(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
+        g = Game.combatArena(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
         g.update(DT, 0, false, true, false, 0, true);
         check(g.player.dashing() && g.enemy.health == 100 && g.enemy.posture.value() == 0,
                 "game resolves dash before an unconnected simultaneous ordinary attack");
-        g = new Game(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
+        g = Game.combatArena(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
         g.update(DT, 0, false, true); g.update(DT, 0, false, false, false, 0, true);
         check(g.enemy.health == 75 && g.enemy.posture.value() == 25 && g.player.dashing(),
                 "game cancellation preserves a previous tick's committed hit");
-        g = new Game(); g.player.takeDamage(20); g.player.posture.add(100);
+        g = Game.combatArena(); g.player.takeDamage(20); g.player.posture.add(100);
         g.update(DT, 0, false, false, false, 0, true);
         check(g.player.dashing() && !g.player.staggered() && g.player.health == 80 && g.player.posture.value() == 100,
                 "fixed-step dash escapes stagger without undoing damage");
@@ -123,7 +123,7 @@ public final class DashChecks {
         System.out.println("Passed " + checks + " dash checks");
     }
     private static Game run(int fps) {
-        Game g = new Game(); g.enemy.detectionRadius = 0;
+        Game g = Game.combatArena(); g.enemy.detectionRadius = 0;
         for (int i = 0; i < fps; i++) g.update(1f / fps, 0, false, false, false, 0, i == 0);
         return g;
     }

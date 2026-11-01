@@ -15,6 +15,9 @@ public final class Player {
     private boolean guardNeedsFreshPress;
     public float x = 180, y = GameWorld.GROUND_Y - HEIGHT;
     public float velocityY;
+    public boolean climbing;
+    int ladder; float dropTime;
+    AreaDefinition terrain; int verticalInput;
     public static final int DEFAULT_MAX_HEALTH = 100;
     public final int maxHealth;
     public int health;
@@ -141,7 +144,9 @@ public final class Player {
         health = (int) Math.max(0, (long) health - Math.max(0, amount));
         if (defeated()) { attackTime = 0; velocityY = 0; clearGuard(); dashAge = DASH_DURATION; deathblowTime = 0; }
     }
+    public void finishTravel() { attackTime=0;hitThisAttack=true;dashAge=DASH_DURATION;climbing=false;dropTime=0;clearGuard();guardNeedsFreshPress=true; }
     public void reset() {
+        climbing=false; dropTime=0; verticalInput=0;
         x = 180; y = GameWorld.GROUND_Y - HEIGHT; velocityY = 0; health = maxHealth;
         facingRight = grounded = true; attackTime = cooldown = 0; hitThisAttack = false;
         clearGuard(); posture.reset(); impact = Impact.NONE; feedbackTime = 0;
@@ -164,10 +169,12 @@ public final class Player {
             x += move * SPEED * Math.max(0, dt - burst);
             attack = false;
         } else x += move * SPEED * dt;
-        if (jump && grounded) { velocityY = -590; grounded = false; }
+        if (jump && (grounded || climbing)) { velocityY = -590; grounded = false; climbing=false; }
+        float oldY=y;
         velocityY += GameWorld.GRAVITY * dt;
         y += velocityY * dt;
-        CollisionManager.resolveWorld(this);
+        if(terrain==null) CollisionManager.resolveWorld(this);
+        else TerrainPhysics.player(this,terrain,oldY,dt,verticalInput,move,jump);
         if (attack && cooldown == 0) {
             attackTime = ATTACK_DURATION;
             cooldown = COOLDOWN;

@@ -104,22 +104,22 @@ public final class RefinementChecks {
         e.posture.update(1); e.deflected(100); p.facingRight = true;
         check(p.tryDeathblow(e) && e.defeated() && p.impact() == Player.Impact.DEATHBLOW, "deathblow kills standard enemy");
         check(!p.tryDeathblow(e), "deathblow cannot repeat on corpse");
-        Game g = new Game(CombatConfig.DEFAULT, 100, 400);
+        Game g = Game.combatArena(CombatConfig.DEFAULT, 100, 400);
         g.player.x = g.enemy.x - Player.WIDTH - 20; g.enemy.deflected(100);
         g.update(DT, 0, false, true);
         check(g.enemy.defeated() && g.player.impact() == Player.Impact.DEATHBLOW, "ATTACK edge invokes deathblow in game");
-        g = new Game(); g.player.x = g.enemy.x - Player.WIDTH - 20;
+        g = Game.combatArena(); g.player.x = g.enemy.x - Player.WIDTH - 20;
         g.player.update(DT, 0, false, true); g.enemy.deflected(100);
         g.update(DT, 0, false, false);
         check(!g.enemy.defeated(), "old active attack cannot automatically become deathblow");
         g.update(DT, 0, false, true);
         check(g.enemy.defeated(), "fresh deathblow overrides ordinary attack cooldown");
-        g = new Game(); g.player.x = g.enemy.x - Player.WIDTH - 20;
+        g = Game.combatArena(); g.player.x = g.enemy.x - Player.WIDTH - 20;
         g.update(DT, 0, false, true); check(g.enemy.health == 75, "ordinary attack remains ordinary against unbroken enemy");
         g.enemy.takeDamage(1000); check(g.enemy.state() == Enemy.State.DEAD, "health-based defeat preserved");
 
         for (int maximum : new int[]{100, 400, 10000}) {
-            g = new Game(CombatConfig.DEFAULT, maximum, maximum);
+            g = Game.combatArena(CombatConfig.DEFAULT, maximum, maximum);
             near(g.player.healthFraction(), 1, "player full health " + maximum);
             near(g.enemy.healthFraction(), 1, "enemy full health " + maximum);
             g.player.health = g.enemy.health = maximum / 2;
@@ -137,7 +137,7 @@ public final class RefinementChecks {
         near(Vitals.fraction(100, 0), 0, "zero maximum safe");
         near(Vitals.fraction(100, -100), 0, "negative maximum safe");
         near(Vitals.fraction(Double.NaN, 100), 0, "non-finite HUD value safe");
-        g = new Game(CombatConfig.DEFAULT, 0, 0); g.restart();
+        g = Game.combatArena(CombatConfig.DEFAULT, 0, 0); g.restart();
         check(g.player.defeated() && g.enemy.defeated() && g.player.healthFraction() == 0, "zero-health actors safe");
         meter = new Posture(custom); meter.add(10000); near(meter.fraction(), 1, "posture bar clamped at capacity");
         Game reference = run(120);
@@ -150,7 +150,7 @@ public final class RefinementChecks {
         System.out.println("Passed " + checks + " combat refinement checks");
     }
     private static Game run(int fps) {
-        Game g = new Game(); g.player.x = g.enemy.x - Player.WIDTH - 20;
+        Game g = Game.combatArena(); g.player.x = g.enemy.x - Player.WIDTH - 20;
         for (int i = 0; i < fps * 10; i++) g.update(1f / fps, 0, false, false, true, i == 0);
         return g;
     }

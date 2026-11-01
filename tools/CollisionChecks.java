@@ -53,29 +53,29 @@ public final class CollisionChecks {
         e.takeDamage(e.maxHealth); p.x = 600; old = p.x; p.x = 700;
         CollisionManager.resolvePlayerMovement(p, e, old, p.y);
         check(p.x == 700, "dead enemy body does not obstruct");
-        Game g = new Game(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH;
+        Game g = Game.combatArena(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH;
         float stopped = g.player.x;
         for (int i = 0; i < 600; i++) g.update(DT, 1, false, false);
         check(g.player.x == stopped && clear(g.player, g.enemy) && g.player.facingRight,
                 "continuous contact has no jitter and preserves facing");
         g.update(DT, -1, false, false);
         check(g.player.x < stopped && !g.player.facingRight, "can move away immediately, no stuck body");
-        g = new Game(); g.player.x = g.enemy.x - Player.WIDTH;
+        g = Game.combatArena(); g.player.x = g.enemy.x - Player.WIDTH;
         g.update(DT, 1, false, true, true, true);
         check(g.enemy.health == 75 && clear(g.player, g.enemy), "ordinary attack works while bodies touch");
         for (int i = 0; i < 80; i++) g.update(DT, 1, false, false, true, false);
         check(g.player.health == 100 && clear(g.player, g.enemy), "block works while touching enemy");
-        g = new Game(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
+        g = Game.combatArena(); g.enemy.detectionRadius = 0; g.player.x = g.enemy.x - Player.WIDTH - 20;
         for (int i = 0; i < 120; i++) g.update(DT, 1, i == 0, false);
         check(g.player.x > g.enemy.x + Enemy.WIDTH && g.player.grounded && clear(g.player, g.enemy),
                 "real jump crosses enemy and lands on other side");
         for (int rate : new int[]{30, 60, 120, 144, 240}) {
-            g = new Game(); g.enemy.detectionRadius = 0;
+            g = Game.combatArena(); g.enemy.detectionRadius = 0;
             for (int i = 0; i < rate * 4; i++) g.update(1f / rate, 1, false, false);
             check(g.player.x + Player.WIDTH == g.enemy.x && clear(g.player, g.enemy),
                     "solid body at " + rate + " fps");
         }
-        g = new Game(); g.player.x = g.enemy.x - Player.WIDTH - 2;
+        g = Game.combatArena(); g.player.x = g.enemy.x - Player.WIDTH - 2;
         g.update(10, 1, false, false);
         check(clear(g.player, g.enemy) && g.player.x + Player.WIDTH <= g.enemy.x, "frame spike cannot tunnel");
         System.out.println("Passed " + checks + " body collision checks");

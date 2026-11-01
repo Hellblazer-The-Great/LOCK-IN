@@ -81,7 +81,7 @@ public final class EnemyChecks {
         p.takeDamage(-10); check(p.health == 100, "negative player damage ignored");
         p.takeDamage(1000); check(p.defeated() && p.health == 0, "player health clamps at zero");
 
-        Game g = new Game(); g.player.x = g.enemy.x - Player.WIDTH - 20;
+        Game g = Game.combatArena(); g.player.x = g.enemy.x - Player.WIDTH - 20;
         for (int i = 0; i < 1500 && !g.player.defeated(); i++) g.update(DT, 0, false, false);
         check(g.player.defeated(), "enemy can defeat player through game coordination");
         float deadX = g.player.x, enemyX = g.enemy.x;
@@ -97,7 +97,7 @@ public final class EnemyChecks {
         for (int i = 0; i < 120; i++) g.update(DT, 0, false, false);
         check(g.player.health == 100 && g.enemy.state() == Enemy.State.DEAD, "defeated enemy never attacks");
 
-        g = new Game(); g.player.x = g.enemy.x - Player.WIDTH - 20;
+        g = Game.combatArena(); g.player.x = g.enemy.x - Player.WIDTH - 20;
         g.enemy.takeDamage(75);
         int windupTicks = 0;
         while (g.enemy.state() != Enemy.State.ATTACK_ACTIVE && windupTicks++ < 1000) {
@@ -117,7 +117,7 @@ public final class EnemyChecks {
         check(e.state() == Enemy.State.IDLE, "losing detection stops chase");
         float x = e.x; e.update(Float.NaN, p); e.update(-1, p);
         check(e.x == x, "invalid enemy delta ignored");
-        Game a = new Game(), b = new Game();
+        Game a = Game.combatArena(), b = Game.combatArena();
         a.player.x = b.player.x = 500;
         for (int i = 0; i < 180; i++) a.update(1f / 60, 0, false, false);
         for (int i = 0; i < 360; i++) b.update(DT, 0, false, false);
