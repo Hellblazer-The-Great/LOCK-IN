@@ -28,7 +28,13 @@ public final class CharacterAnimations {
     public void update(Game game,double dt) { update(game,dt,game.enemy); }
     public void update(Game game,double dt,Enemy foe) {
         if (restart != game.restartVersion()) reset(game,foe);
-        dt = Double.isFinite(dt) ? Math.max(0, Math.min(.05, dt)) : 0;
+        dt = Double.isFinite(dt) ? Math.max(0, dt) : 0;
+        updatePlayer(game,dt);
+        updateEnemy(game,dt,foe);
+    }
+    public void updatePlayer(Game game,double dt) {
+        if(restart!=game.restartVersion()) reset(game,game.enemy);
+        dt=Double.isFinite(dt)?Math.max(0,dt):0;
         Player actor = game.player;
         boolean running = Math.abs(actor.x - previousPlayerX) > .001f;
         boolean synced = false;
@@ -60,7 +66,12 @@ public final class CharacterAnimations {
         else p(Pose.IDLE, SpriteClip.NINJA_IDLE, 0, 7, 12, true);
         if (!synced) player.advance(dt);
 
-
+        previousPlayerX=actor.x;
+    }
+    public void updateEnemy(Game game,double dt,Enemy foe) {
+        if(restart!=game.restartVersion()) reset(game,foe);
+        dt=Double.isFinite(dt)?Math.max(0,dt):0;
+        boolean synced=false;
         enemyHurt = Math.max(0, enemyHurt - dt);
         if (foe.health < previousEnemyHealth) enemyHurt = .18;
         boolean chasing = Math.abs(foe.x - previousEnemyX) > .001f;
@@ -82,6 +93,6 @@ public final class CharacterAnimations {
         else if (chasing || foe.climbing || !foe.grounded) e(Pose.RUN, SpriteClip.SAMURAI_RUN, 0, 5, 12, true, 0);
         else e(Pose.IDLE, SpriteClip.SAMURAI_IDLE, 0, 2, 8, true, 0);
         if (!synced) enemy.advance(dt);
-        previousPlayerX = actor.x; previousEnemyX = foe.x; previousEnemyHealth = foe.health;
+        previousEnemyX = foe.x; previousEnemyHealth = foe.health;
     }
 }

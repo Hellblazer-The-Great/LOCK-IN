@@ -2,7 +2,16 @@ package com.lockin.game;
 
 /** Simulation owned exclusively by the rendering thread. No Android dependencies. */
 public final class Game {
-    private static final double STEP = 1.0 / 120;
+    public static final double STEP = 1.0 / 120;
+    public static final int MAX_STEPS_PER_UPDATE = 32;
+    public static final double MAX_BACKLOG_SECONDS = .5;
+    private long simulationSteps;
+    private double lastAdvanceSeconds, droppedSeconds;
+    public long simulationSteps() { return simulationSteps; }
+    public double simulationSeconds() { return simulationSteps * STEP; }
+    public double lastAdvanceSeconds() { return lastAdvanceSeconds; }
+    public double backlogSeconds() { return accumulator; }
+    public double droppedSeconds() { return droppedSeconds; }
     private double accumulator;
     private long restartVersion;
     public long restartVersion() { return restartVersion; }
@@ -49,7 +58,7 @@ public final class Game {
         enemy=enemies()[0]; player.terrain=area().definition;
     }
     public void restart() {
-        restartVersion++;
+        restartVersion++; simulationSteps=0; lastAdvanceSeconds=droppedSeconds=0;
         player.reset(); for(AreaState area:areas) area.reset(); areaIndex=0; enemy=enemies()[0];
         player.terrain=combatArena?null:area().definition; resetPending=complete=false; transitionLock=0; clearQueued();
     }
@@ -67,6 +76,7 @@ public final class Game {
         update(dt, move, jump, attack, guard, guardPresses, false);
     }
     public void update(float dt, int move, boolean jump, boolean attack, boolean guard, int guardPresses, boolean dash) {
+        lastAdvanceSeconds=0;
         if(resetPending || complete) return;
         if ((Float.isNaN(dt) || Float.isInfinite(dt)) || dt <= 0) return;
         if (player.defeated()) {
@@ -79,8 +89,16 @@ public final class Game {
         jumpQueued |= jump;
         attackQueued |= attack;
         dashQueued |= dash;
-        accumulator += Math.min(dt, .05f);
-        while (accumulator + 1e-9 >= STEP) {
+        // Preserve elapsed time across expensive render frames. Only pathological stalls
+        // overflow the explicit backlog bound, and their discarded time is observable.
+        accumulator += dt;
+        if(accumulator > MAX_BACKLOG_SECONDS) {
+            droppedSeconds += accumulator-MAX_BACKLOG_SECONDS;
+            accumulator=MAX_BACKLOG_SECONDS;
+        }
+        int budget=MAX_STEPS_PER_UPDATE;
+        while (accumulator + 1e-9 >= STEP && budget-- > 0) {
+            simulationSteps++; lastAdvanceSeconds += STEP;
             float step = (float) STEP;
             accumulator = Math.max(0, accumulator - STEP);
             for(Enemy e:enemies()) CollisionManager.resolveBodies(player,e);

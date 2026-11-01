@@ -1,6 +1,8 @@
 package com.lockin.game;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.util.Log;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -19,6 +21,8 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
     private final Controls.Snapshot controls = new Controls.Snapshot();
     private final Game game = new Game();
     private final InputHandler input = new InputHandler();
+    private final FrameStats frameStats=new FrameStats();
+    private final boolean logTiming;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private volatile boolean running;
     private boolean resumed, surfaceReady;
@@ -26,6 +30,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
 
     public GameScreen(Context context) {
         super(context);
+        logTiming=(context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE)!=0;
         SpritePainter loaded = null;
         String failure = null;
         try { loaded = new SpritePainter(context.getAssets()); }
@@ -68,6 +73,9 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
             long start = System.nanoTime();
             float dt = (start - previous) / 1_000_000_000f;
             previous = start;
+            long updateStart=System.nanoTime();
+            long beforeSteps=game.simulationSteps();double beforeDrop=game.droppedSeconds();
+            boolean measuring=!game.resetPending()&&!game.complete()&&!game.player.defeated();
             input.consume(controls);
             if (sprites != null) {
                 int command=input.consumeCommand();
@@ -76,16 +84,26 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
                 else if(command==3) {game.cancelReset();input.resetInput();}
                 if(!game.resetPending()) {
                     game.update(dt,controls);
-                    animations.update(game,dt);
-                    for(int i=0;i<game.enemies().length;i++) foes[i].update(game,dt,game.enemies()[i]);
+                    double visualDt=game.player.defeated() || game.complete()?Math.min(dt,Game.MAX_BACKLOG_SECONDS):game.lastAdvanceSeconds();
+                    animations.updatePlayer(game,visualDt);
+                    for(int i=0;i<game.enemies().length;i++) foes[i].updateEnemy(game,visualDt,game.enemies()[i]);
                 }
             }
+            long updateEnd=System.nanoTime();
             Canvas canvas = null;
             try {
                 canvas = getHolder().lockCanvas();
                 if (canvas != null) drawGame(canvas);
             } finally {
                 if (canvas != null) getHolder().unlockCanvasAndPost(canvas);
+            }
+            long drawEnd=System.nanoTime();
+            if(logTiming) {
+                if(measuring && !game.resetPending() && game.simulationSteps()>=beforeSteps) {
+                    frameStats.record(dt,updateEnd-updateStart,drawEnd-updateEnd,game.simulationSteps()-beforeSteps,
+                        game.lastAdvanceSeconds(),Math.max(0,game.droppedSeconds()-beforeDrop));
+                    if(frameStats.ready()) {Log.i("LOCK-IN-Timing",frameStats.summary(game.backlogSeconds()));frameStats.reset();}
+                } else frameStats.reset();
             }
             long rest = frameNanos - (System.nanoTime() - start);
             if (rest > 0 && running) {
@@ -182,32 +200,36 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
             }
         }
         for(Enemy foe:game.enemies()) {
+        float visualTop=foe.y+Enemy.HEIGHT-SpriteClip.SAMURAI_IDLE.anchorY*SpriteClip.SAMURAI_IDLE.scale;
         if (foe.state() == Enemy.State.ATTACK_WINDUP) {
             int telegraph = foe.move() == EnemyMove.HEAVY_OVERHEAD ? Color.rgb(255, 150, 60) : Color.YELLOW;
-            float top = foe.y - (foe.move() == EnemyMove.HEAVY_OVERHEAD ? 35 : 20);
-            rect(c, foe.x + 4, top, foe.x + Enemy.WIDTH - 4, top + (foe.move() == EnemyMove.HEAVY_OVERHEAD ? 12 : 5), telegraph);
+            float top = Math.max(78,visualTop - (foe.move() == EnemyMove.HEAVY_OVERHEAD ? 35 : 20));
+            float cueX=visualTop<120?(foe.x>820?foe.x-56:foe.x+Enemy.WIDTH+12):foe.x+4;
+            rect(c, cueX, top, cueX+Enemy.WIDTH-8, top + (foe.move() == EnemyMove.HEAVY_OVERHEAD ? 12 : 5), telegraph);
             if (foe.move() == EnemyMove.DOUBLE_SLASH)
-                text(c, foe.strikeNumber() == 1 ? "1" : "2", foe.x + 15, top - 4, 18, telegraph);
+                text(c, foe.strikeNumber() == 1 ? "1" : "2", cueX+8, top - 4, 18, telegraph);
             if (foe.move() == EnemyMove.HEAVY_OVERHEAD)
-                text(c, "HEAVY", Math.max(8, foe.x - 7), top - 6, 16, telegraph);
+                text(c, "HEAVY", Math.max(8,cueX-7), top - 6, 16, telegraph);
         }
         if (foe.posture.broken() && !foe.defeated()) {
-            rect(c, foe.x - 8, foe.y - 42, foe.x + Enemy.WIDTH + 8, foe.y - 25, Color.RED);
-            text(c, "!", foe.x + 15, foe.y - 27, 18, Color.WHITE);
-            rect(c, foe.x - 8, foe.y - 22, foe.x - 8 + (Enemy.WIDTH + 16) * foe.posture.breakFraction(), foe.y - 18, Color.YELLOW);
+            float breakX=visualTop<120?(foe.x>820?foe.x-68:foe.x+Enemy.WIDTH+12):foe.x-8;
+            float breakY=Math.max(78,visualTop-42);
+            rect(c,breakX,breakY,breakX+Enemy.WIDTH+16,breakY+17,Color.RED);
+            text(c,"!",breakX+23,breakY+15,18,Color.WHITE);
+            rect(c,breakX,breakY+20,breakX+(Enemy.WIDTH+16)*foe.posture.breakFraction(),breakY+24,Color.YELLOW);
         }
         if (!foe.defeated()) {
-            rect(c, foe.x, foe.y - 14, foe.x + Enemy.WIDTH, foe.y - 7, Color.DKGRAY);
-            rect(c, foe.x, foe.y - 14, foe.x + Enemy.WIDTH * foe.healthFraction(), foe.y - 7, Color.RED);
+            rect(c, foe.x, visualTop-14, foe.x + Enemy.WIDTH, visualTop-7, Color.DKGRAY);
+            rect(c, foe.x, visualTop-14, foe.x + Enemy.WIDTH * foe.healthFraction(), visualTop-7, Color.RED);
         }
             if(!foe.defeated()) {
-                rect(c,foe.x,foe.y-5,foe.x+Enemy.WIDTH,foe.y-1,Color.DKGRAY);
-                rect(c,foe.x,foe.y-5,foe.x+Enemy.WIDTH*foe.posture.fraction(),foe.y-1,Color.YELLOW);
+                rect(c,foe.x,visualTop-5,foe.x+Enemy.WIDTH,visualTop-1,Color.DKGRAY);
+                rect(c,foe.x,visualTop-5,foe.x+Enemy.WIDTH*foe.posture.fraction(),visualTop-1,Color.YELLOW);
             }
             if(DEBUG_VISUALS) {
                 outline(c,foe.x,foe.y,foe.x+Enemy.WIDTH,foe.y+Enemy.HEIGHT,Color.MAGENTA);
                 if(foe.state()==Enemy.State.ATTACK_ACTIVE) outline(c,foe.attackLeft(),foe.attackTop(),foe.attackRight(),foe.attackBottom(),Color.RED);
-                text(c,foe.state().name(),foe.x,foe.y-50,12,Color.WHITE);
+                text(c,foe.state().name(),foe.x,visualTop-50,12,Color.WHITE);
             }
         }
         rect(c, 12, 10, 275, 135, 0xBB18212B);
