@@ -56,6 +56,31 @@ public final class InputChecks {
         touch(input, MotionEvent.ACTION_DOWN, 0, 490); touch(input, MotionEvent.ACTION_UP, 0, 490);
         input.consume(reusable); check(reusable.dash, "quick completed DASH tap is queued");
         input.consume(reusable); check(!reusable.dash, "completed DASH tap consumed only once");
+        input.clear();
+        touch(input,MotionEvent.ACTION_DOWN,0,Controls.left(Controls.UP)+40);
+        touch(input,MotionEvent.ACTION_POINTER_DOWN,1,Controls.left(Controls.UP)+40,750);
+        s=input.consume();check(s.vertical==-1&&s.jump,"UP and JUMP are independent multitouch inputs");
+        touch(input,MotionEvent.ACTION_POINTER_UP,0,Controls.left(Controls.UP)+40,750);
+        s=input.consume();check(s.vertical==0,"lifting UP stops climbing without cancelling other touch");
+        input.clear();touch(input,MotionEvent.ACTION_DOWN,0,70);input.consume();
+        input.onTouch(new MotionEvent(MotionEvent.ACTION_POINTER_DOWN,1,new float[]{70,480},new float[]{475,30}),1,0,0);
+        check(input.modal()&&input.consumeCommand()==1,"RESET opens modal even with movement held");
+        s=input.consume();check(s.move==0&&!s.attack&&!s.guard&&!s.dash,"RESET clears all held and queued combat");
+        touch(input,MotionEvent.ACTION_MOVE,0,860);check(!input.consume().attack,"modal prevents combat behind overlay");
+        input.onTouch(new MotionEvent(MotionEvent.ACTION_POINTER_DOWN,1,new float[]{860,590},new float[]{475,290}),1,0,0);
+        check(input.consumeCommand()==3&&!input.modal(),"CANCEL command closes overlay");
+        input.resetInput();touch(input,MotionEvent.ACTION_MOVE,0,860);check(!input.consume().attack,"cancel requires old fingers to lift");
+        touch(input,MotionEvent.ACTION_UP,0,860);touch(input,MotionEvent.ACTION_DOWN,0,860);
+        check(input.consume().attack,"fresh touch resumes combat after cancel");
+        input.clear();input.onTouch(new MotionEvent(MotionEvent.ACTION_DOWN,0,new float[]{480},new float[]{30}),1,0,0);
+        check(input.consumeCommand()==1,"reset request queued once");
+        input.onTouch(new MotionEvent(MotionEvent.ACTION_UP,0,new float[]{480},new float[]{30}),1,0,0);
+        input.onTouch(new MotionEvent(MotionEvent.ACTION_DOWN,0,new float[]{350},new float[]{290}),1,0,0);
+        check(input.consumeCommand()==2&&!input.modal(),"CONFIRM queues complete reset");
+        check(input.consumeCommand()==0,"UI command consumed once");
+        input.clear();input.onTouch(new MotionEvent(MotionEvent.ACTION_DOWN,0,new float[]{480},new float[]{30}),1,0,0);
+        input.clear();check(input.modal()&&input.consumeCommand()==1,"lifecycle pause cannot strand an unconsumed reset modal");
+
         System.out.println("Passed " + checks + " touch adapter checks");
     }
 }

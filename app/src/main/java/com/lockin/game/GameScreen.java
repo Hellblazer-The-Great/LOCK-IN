@@ -11,8 +11,9 @@ import java.io.IOException;
 
 public final class GameScreen extends SurfaceView implements SurfaceHolder.Callback, Runnable {
     private static final boolean DEBUG_VISUALS = false;
-    private static final String[] BUTTON_LABELS = {"LEFT", "RIGHT", "JUMP", "ATTACK", "GUARD", "DASH"};
+    private static final String[] BUTTON_LABELS = {"LEFT", "RIGHT", "JUMP", "ATTACK", "GUARD", "DASH", "UP", "DOWN"};
     private final CharacterAnimations animations = new CharacterAnimations();
+    private final CharacterAnimations[] foes={new CharacterAnimations(),new CharacterAnimations(),new CharacterAnimations()};
     private final SpritePainter sprites;
     private final String assetError;
     private final Controls.Snapshot controls = new Controls.Snapshot();
@@ -69,8 +70,15 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
             previous = start;
             input.consume(controls);
             if (sprites != null) {
-                game.update(dt, controls.move, controls.jump, controls.attack, controls.guard, controls.guardPresses, controls.dash);
-                animations.update(game, dt);
+                int command=input.consumeCommand();
+                if(command==1) game.requestReset();
+                else if(command==2) {game.requestReset();game.confirmReset();input.resetInput();}
+                else if(command==3) {game.cancelReset();input.resetInput();}
+                if(!game.resetPending()) {
+                    game.update(dt,controls);
+                    animations.update(game,dt);
+                    for(int i=0;i<game.enemies().length;i++) foes[i].update(game,dt,game.enemies()[i]);
+                }
             }
             Canvas canvas = null;
             try {
@@ -137,13 +145,14 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
             c.restore(); return;
         }
         Player p = game.player; Enemy e = game.enemy;
-        sprites.arena(c, p.x + Player.WIDTH / 2);
+        sprites.area(c,game.area().definition,game.areaIndex(),p.x+Player.WIDTH/2);
         paint.setColor(0x55352828);
-        c.drawOval(p.x - 6, GameWorld.GROUND_Y - 5, p.x + Player.WIDTH + 6, GameWorld.GROUND_Y + 4, paint);
-        c.drawOval(e.x - 6, GameWorld.GROUND_Y - 5, e.x + Enemy.WIDTH + 6, GameWorld.GROUND_Y + 4, paint);
+        c.drawOval(p.x-6,p.y+Player.HEIGHT-5,p.x+Player.WIDTH+6,p.y+Player.HEIGHT+4,paint);
+        for(Enemy foe:game.enemies()) c.drawOval(foe.x-6,foe.y+Enemy.HEIGHT-5,foe.x+Enemy.WIDTH+6,foe.y+Enemy.HEIGHT+4,paint);
         if (p.dashing()) sprites.character(c, animations.player, p.x + Player.WIDTH / 2 - p.dashDirection() * 28,
                 p.y + Player.HEIGHT, p.facingRight, 65);
-        sprites.character(c, animations.enemy, e.x + Enemy.WIDTH / 2, e.y + Enemy.HEIGHT, e.facingRight, 255);
+        for(int i=0;i<game.enemies().length;i++) { Enemy foe=game.enemies()[i];
+            sprites.character(c,foes[i].enemy,foe.x+Enemy.WIDTH/2,foe.y+Enemy.HEIGHT,foe.facingRight,255); }
         sprites.character(c, animations.player, p.x + Player.WIDTH / 2, p.y + Player.HEIGHT, p.facingRight, p.defeated() ? 180 : 255);
         // Combat effects follow characters. They are cues, never damage or collision inputs.
         if (p.guarding()) {
@@ -172,55 +181,73 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
                 c.drawLine(cx + 7, cy - 7, cx + 18, cy - 18, paint);
             }
         }
-        if (e.state() == Enemy.State.ATTACK_WINDUP) {
-            int telegraph = e.move() == EnemyMove.HEAVY_OVERHEAD ? Color.rgb(255, 150, 60) : Color.YELLOW;
-            float top = e.y - (e.move() == EnemyMove.HEAVY_OVERHEAD ? 35 : 20);
-            rect(c, e.x + 4, top, e.x + Enemy.WIDTH - 4, top + (e.move() == EnemyMove.HEAVY_OVERHEAD ? 12 : 5), telegraph);
-            if (e.move() == EnemyMove.DOUBLE_SLASH)
-                text(c, e.strikeNumber() == 1 ? "1" : "2", e.x + 15, top - 4, 18, telegraph);
-            if (e.move() == EnemyMove.HEAVY_OVERHEAD)
-                text(c, "HEAVY", Math.max(8, e.x - 7), top - 6, 16, telegraph);
+        for(Enemy foe:game.enemies()) {
+        if (foe.state() == Enemy.State.ATTACK_WINDUP) {
+            int telegraph = foe.move() == EnemyMove.HEAVY_OVERHEAD ? Color.rgb(255, 150, 60) : Color.YELLOW;
+            float top = foe.y - (foe.move() == EnemyMove.HEAVY_OVERHEAD ? 35 : 20);
+            rect(c, foe.x + 4, top, foe.x + Enemy.WIDTH - 4, top + (foe.move() == EnemyMove.HEAVY_OVERHEAD ? 12 : 5), telegraph);
+            if (foe.move() == EnemyMove.DOUBLE_SLASH)
+                text(c, foe.strikeNumber() == 1 ? "1" : "2", foe.x + 15, top - 4, 18, telegraph);
+            if (foe.move() == EnemyMove.HEAVY_OVERHEAD)
+                text(c, "HEAVY", Math.max(8, foe.x - 7), top - 6, 16, telegraph);
         }
-        if (e.posture.broken() && !e.defeated()) {
-            rect(c, e.x - 8, e.y - 42, e.x + Enemy.WIDTH + 8, e.y - 25, Color.RED);
-            text(c, "!", e.x + 15, e.y - 27, 18, Color.WHITE);
-            rect(c, e.x - 8, e.y - 22, e.x - 8 + (Enemy.WIDTH + 16) * e.posture.breakFraction(), e.y - 18, Color.YELLOW);
+        if (foe.posture.broken() && !foe.defeated()) {
+            rect(c, foe.x - 8, foe.y - 42, foe.x + Enemy.WIDTH + 8, foe.y - 25, Color.RED);
+            text(c, "!", foe.x + 15, foe.y - 27, 18, Color.WHITE);
+            rect(c, foe.x - 8, foe.y - 22, foe.x - 8 + (Enemy.WIDTH + 16) * foe.posture.breakFraction(), foe.y - 18, Color.YELLOW);
         }
-        if (!e.defeated()) {
-            rect(c, e.x, e.y - 14, e.x + Enemy.WIDTH, e.y - 7, Color.DKGRAY);
-            rect(c, e.x, e.y - 14, e.x + Enemy.WIDTH * e.healthFraction(), e.y - 7, Color.RED);
+        if (!foe.defeated()) {
+            rect(c, foe.x, foe.y - 14, foe.x + Enemy.WIDTH, foe.y - 7, Color.DKGRAY);
+            rect(c, foe.x, foe.y - 14, foe.x + Enemy.WIDTH * foe.healthFraction(), foe.y - 7, Color.RED);
+        }
+            if(!foe.defeated()) {
+                rect(c,foe.x,foe.y-5,foe.x+Enemy.WIDTH,foe.y-1,Color.DKGRAY);
+                rect(c,foe.x,foe.y-5,foe.x+Enemy.WIDTH*foe.posture.fraction(),foe.y-1,Color.YELLOW);
+            }
+            if(DEBUG_VISUALS) {
+                outline(c,foe.x,foe.y,foe.x+Enemy.WIDTH,foe.y+Enemy.HEIGHT,Color.MAGENTA);
+                if(foe.state()==Enemy.State.ATTACK_ACTIVE) outline(c,foe.attackLeft(),foe.attackTop(),foe.attackRight(),foe.attackBottom(),Color.RED);
+                text(c,foe.state().name(),foe.x,foe.y-50,12,Color.WHITE);
+            }
         }
         rect(c, 12, 10, 275, 135, 0xBB18212B);
-        rect(c, 586, 44, 830, 135, 0xBB18212B);
-        rect(c, 315, 10, 950, 42, 0xBB18212B);
-        text(c, "LOCK IN  |  v0.3.0", 24, 34, 24, Color.WHITE);
+        text(c, "LOCK IN  |  v0.3.1", 24, 34, 24, Color.WHITE);
         text(c, "PLAYER " + p.health + "/" + p.maxHealth, 24, 64, 18, Color.WHITE);
         rect(c, 24, 74, 224, 86, Color.DKGRAY);
         rect(c, 24, 74, 24 + 200 * p.healthFraction(), 86, Color.CYAN);
-        text(c, "ENEMY " + e.health + "/" + e.maxHealth, 600, 64, 18, Color.WHITE);
-        rect(c, 600, 74, 800, 86, Color.DKGRAY);
-        rect(c, 600, 74, 600 + 200 * e.healthFraction(), 86, Color.RED);
+        int alive=0;for(Enemy foe:game.enemies()) if(!foe.defeated())alive++;
+        rect(c,590,10,945,42,0xBB18212B);
+        text(c,"ENEMIES: "+alive+" / "+game.enemies().length,610,33,20,Color.WHITE);
         postureBar(c, p.posture, 24, 98, "PLAYER POSTURE");
-        postureBar(c, e.posture, 600, 98, "ENEMY POSTURE");
         text(c, p.staggered() ? "STAGGERED" : "", 24, 151, 18, Color.RED);
         if (DEBUG_VISUALS) debug(c);
         if (p.defeated()) {
             rect(c, 220, 160, 740, 260, 0xEE141B29);
             text(c, "DEFEATED", 380, 202, 32, Color.RED);
-            text(c, "Release JUMP, then tap RESTART", 285, 240, 22, Color.WHITE);
-        } else {
-            text(c, e.defeated() ? "Enemy defeated!" : p.canDeathblow(e) ? "ATTACK: DEATHBLOW!"
-                            : e.posture.broken() ? "Enemy broken: close in and face it!"
-                            : "Watch the blade. Guard, deflect or dash.",
-                    330, 34, 18, p.canDeathblow(e) ? Color.RED : Color.LTGRAY);
+            text(c, "Tap RESET to replay all three areas", 270, 240, 22, Color.WHITE);
         }
+        if(game.complete()) {
+            rect(c,210,160,750,260,0xEE141B29);text(c,"PROTOTYPE COMPLETE",270,215,30,Color.YELLOW);
+            text(c,"RESET to play again",350,246,20,Color.WHITE);
+        }
+        rect(c,285,65,575,97,0xBB18212B);
+        text(c,game.area().definition.name,295,87,20,Color.WHITE);
+        rect(c,420,10,540,58,0xFF773D35);outline(c,420,10,540,58,Color.WHITE);
+        text(c,"RESET",438,41,22,Color.WHITE);
         for (int i = 0; i < Controls.COUNT; i++) {
             int left = Controls.left(i);
             rect(c, left, 425, left + Controls.width(i), 525,
                     i == Controls.GUARD && p.guarding() ? 0xEE236482 : 0xDD182733);
             outline(c, left, 425, left + Controls.width(i), 525, 0xFF9B9280);
-            String label = i == Controls.JUMP && p.defeated() ? "RESTART" : BUTTON_LABELS[i];
-            text(c, label, left + 8, 482, i == Controls.JUMP && p.defeated() ? 17 : 20, Color.WHITE);
+            String label = BUTTON_LABELS[i];
+            text(c, label, left + 8, 482, i>=Controls.UP?16:20, Color.WHITE);
+        }
+        if(game.resetPending()) {
+            rect(c,0,0,960,540,0xBB000000);rect(c,220,165,740,350,0xFF182733);
+            text(c,"Reset the entire run?",305,210,28,Color.WHITE);
+            text(c,"All five enemies and progress will reset.",270,240,20,Color.LTGRAY);
+            rect(c,270,255,460,325,0xFF833D35);rect(c,500,255,690,325,0xFF356480);
+            text(c,"CONFIRM",310,299,22,Color.WHITE);text(c,"CANCEL",545,299,22,Color.WHITE);
         }
         c.restore();
     }

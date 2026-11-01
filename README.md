@@ -1,6 +1,8 @@
-# LOCK IN — v0.3.0: Textures
+# LOCK IN — v0.3.1: Three Playable Areas
 
-A minimal Java Android action prototype. One fixed arena, one player and one enemy with basic melee AI. Animated DarkNinja and Samurai Fighter characters render through native `SurfaceView` / `Canvas`, over the supplied Zen Island arena. No Kotlin, game engine, or third-party runtime libraries. Combat remains the v0.2.4 simulation.
+A native Java Android action-platformer with three connected single-screen areas and five independent enemies. DarkNinja and Samurai Fighter animations render through SurfaceView/Canvas over committed terrain art. Guard, deflection, posture, deathblows, and dash combat retain their v0.2.4 timings. No Kotlin or game engine.
+
+See [areas, ladders, navigation, reset, assets and limitations](docs/WORLD.md).
 
 See [sprite mappings, verified layouts, animation priorities, and visual compromises](docs/SPRITES.md).
 
@@ -22,13 +24,17 @@ On Windows use `gradlew.bat`. The Gradle 8.13 wrapper includes a distribution SH
 
 ## Play and verify
 
+Current validation: 1,243 host checks pass; debug APK and Android lint pass (three existing manifest warnings). See [v0.3.1 validation details](docs/WORLD.md#validation-and-limitations).
+
 Hold LEFT or RIGHT to move; tap JUMP or ATTACK; press/hold the dedicated GUARD button; tap DASH with a held direction, or without a direction to dash backward. Separate fingers can hold movement while tapping either action. Actions trigger on a new press, not continuously while held. Dragging between buttons updates the held state. Releasing/cancelling touches or pausing clears inputs. Opposing movement buttons cancel each other.
 
-Walk toward the enemy and face it. A gold rectangle shows the active strike area. Each strike deals 25 damage at most once, lasts 0.16 seconds, and has a 0.45-second cooldown. Four ordinary hits defeat the default 100 HP enemy; higher maximum health takes more hits. A hit requires both horizontal and vertical overlap. The enemy detects the player within a configurable 340-world-pixel center radius, approaches at 110 pixels/second, and stops at a 30-pixel body gap. Detection includes vertical distance. It faces the player while idle/chasing and commits its facing throughout each move. A lethal player strike resolves first and cancels an enemy strike in that simulation step.
+Walk toward the enemy and face it. Attack animation follows the active strike; optional debug mode shows its hitbox. Each strike deals 25 damage at most once, lasts 0.16 seconds, and has a 0.45-second cooldown. Four ordinary hits defeat the default 100 HP enemy; higher maximum health takes more hits. A hit requires both horizontal and vertical overlap. The enemy detects the player within a configurable 340-world-pixel center radius, approaches at 110 pixels/second, and stops at a 30-pixel body gap. Detection includes vertical distance. It faces the player while idle/chasing and commits its facing throughout each move. A lethal player strike resolves first and cancels an enemy strike in that simulation step.
+
+UP/DOWN climb ladders; DOWN away from a ladder drops through elevated decks. Walk to the ground-level right/left doors to change areas. The top-center RESET button pauses and offers CONFIRM/CANCEL. Confirm replays the entire run with all five enemies restored.
 
 ## Dash
 
-DASH is a dedicated button between RIGHT and GUARD. A held horizontal direction chooses the dash direction; neutral input dashes backward without turning the player. The movement is a **180 ms** burst at **950 world pixels/second** (171 pixels unobstructed), with a **450 ms cooldown from initiation**. Invulnerability is centered: **[40 ms, 140 ms)** from dash initiation, inclusive entry and exclusive exit, sampled by the existing fixed 120 Hz combat clock. World/ground/body collision remains active, even during i-frames. Jumping and aerial dashing remain possible; crossing an enemy requires clearing its body height.
+DASH is a dedicated button between DOWN and GUARD. A held horizontal direction chooses the dash direction; neutral input dashes backward without turning the player. The movement is a **180 ms** burst at **950 world pixels/second** (171 pixels unobstructed), with a **450 ms cooldown from initiation**. Invulnerability is centered: **[40 ms, 140 ms)** from dash initiation, inclusive entry and exclusive exit, sampled by the existing fixed 120 Hz combat clock. World/ground/body collision remains active, even during i-frames. Jumping and aerial dashing remain possible; crossing an enemy requires clearing its body height.
 
 Dash cancels an ordinary attack's hitbox and recovery, but never refunds health or posture already committed. Attacks pressed during movement are discarded, not buffered or reactivated. GUARD cannot raise during the movement burst; continuing to hold GUARD resumes regular blocking afterward, with a fresh press required for a new deflect window. Dash can end a posture-break stagger without healing or clearing the posture meter. It grants the existing post-break posture grace once, does not reset dash cooldown, and cannot restart/extend an active dash.
 
@@ -92,13 +98,13 @@ Manual device checklist (requires a real device or emulator):
 - Break both posture meters: verify player stagger/grace, enemy attack cancellation, range/facing deathblow prompt, opportunity expiry, and ATTACK execution. Verify only one effect per swing.
 - Increase actor maxima to 400 and 10,000; check HUD and overhead bars at full/half health, death, and restart.
 - Walk into both enemy sides, move away, jump over it, and walk through its corpse; check no overlap, pushing, jitter or clipping.
-- Jump lands on the platform, cannot double jump, and movement stops at both arena edges.
+- Jump lands on the platform, cannot double jump, and movement respects boundaries and traverses authored ground-level exits.
 - Attacks miss when out of range, facing away, or above the target; one swing never causes multiple damage ticks.
-- Verify both enemy facing directions, avoid an attack by moving out of range or jumping during windup, observe recovery, lose all health, and restart. Confirm a held JUMP cannot auto-restart.
+- Verify both enemy facing directions, avoid an attack by moving out of range or jumping during windup, observe recovery, lose all health, and use RESET. Confirm CANCEL preserves progress and held touches cannot attack behind the modal.
 - Defeat the enemy, then background/foreground and lock/unlock during movement. Verify paused simulation, cleared input, and one resumed rendering loop.
 - Check a wide phone and tablet/windowed display: proportional shapes, letterboxing, safe controls clear of system bars/cutouts, unchanged world speeds.
 
-At zero player health, combat freezes and a defeat overlay appears. Release JUMP and tap its relabeled RESTART button to reset both characters, attack timers, and enemy state. This uses the existing queued press edge; holding JUMP does not automatically restart. Force-stop and relaunch also resets the prototype. State survives pause/resume within the same Activity, but is intentionally not persisted across Activity/process recreation.
+At zero player health, combat freezes and a defeat overlay appears. Use RESET → CONFIRM to restore the entire run; CANCEL preserves the defeated state.
 
 ## Visual validation
 
@@ -134,7 +140,7 @@ Simulation, posture, and button-state logic have no Android dependencies. There 
 
 ## Limits and next steps
 
-This is a single-arena prototype: no audio, scrolling, menus, persistence, or additional levels. It supports one enemy, directional melee and dashing; it does not use stamina or adaptive AI. There is no knockback or enemy body platform. Enemies do not jump or navigate platforms. Very long frame stalls drop elapsed simulation time to prevent tunnelling or sudden jumps. Rendering is paced with sleep rather than display-vsync scheduling.
+This is a three-area prototype with five independent enemies, deterministic ladder/jump navigation, and run-local persistence. There is no audio, scrolling world, disk save, stamina, adaptive AI, inventory, or menu. Large stalls retain the fixed-step elapsed-time cap. Rendering is sleep-paced rather than display-vsync scheduled. See docs/WORLD.md for current limitations.
 
 ## Verification in this cloud workspace
 

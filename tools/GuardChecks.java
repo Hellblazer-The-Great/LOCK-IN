@@ -101,13 +101,13 @@ public final class GuardChecks {
         try { new CombatConfig(.25, 0, 1, 1, 1, 1, 1); } catch (IllegalArgumentException expected) { rejected = true; }
         check(rejected, "invalid tuning rejected");
 
-        Game g = new Game(); g.player.setGuard(true, true); g.player.posture.add(100);
+        Game g = Game.combatArena(); g.player.setGuard(true, true); g.player.posture.add(100);
         g.enemy.posture.add(100); g.player.takeDamage(100);
         g.update(DT, 0, true, false, true, false);
         check(g.player.health == 100 && !g.player.guarding() && g.player.posture.value() == 0
                 && !g.player.posture.broken() && g.enemy.posture.value() == 0 && !g.enemy.posture.broken(),
                 "defeat/restart clears defense and both posture meters");
-        g = new Game(); g.player.posture.add(25);
+        g = Game.combatArena(); g.player.posture.add(25);
         g.player.x = g.enemy.x - Player.WIDTH - 20;
         g.player.updateDefense(.9);
         g.player.update(DT, 0, false, true); g.player.tryHit(g.enemy);
@@ -128,7 +128,7 @@ public final class GuardChecks {
             check(other.player.health == c.player.health && other.enemy.state() == c.enemy.state(),
                     "same combat outcome at " + rate + " fps");
         }
-        g = new Game();
+        g = Game.combatArena();
         g.update(1f / 240, 0, true, true, true, true);
         check(g.player.guarding(), "guard raises even before a full simulation tick");
         g.update(1f / 240, 0, false, false, true, false);
@@ -141,7 +141,7 @@ public final class GuardChecks {
         System.out.println("Passed " + checks + " guard/posture checks");
     }
     private static Game run(int fps) {
-        Game g = new Game(); g.player.x = g.enemy.x - Player.WIDTH - 20;
+        Game g = Game.combatArena(); g.player.x = g.enemy.x - Player.WIDTH - 20;
         for (int i = 0; i < fps * 5; i++) g.update(1f / fps, 0, false, false, true, i == 0);
         return g;
     }

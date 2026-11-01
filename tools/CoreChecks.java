@@ -12,7 +12,7 @@ public final class CoreChecks {
         for (int i = 0; i < frames; i++) game.update(1f / 120, move, false, false);
     }
     private static Game practiceGame() {
-        Game game = new Game();
+        Game game = Game.combatArena();
         game.enemy.detectionRadius = 0;
         return game;
     }

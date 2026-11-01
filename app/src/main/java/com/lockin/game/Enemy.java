@@ -15,6 +15,8 @@ public final class Enemy {
     private float betweenMoves;
     public float x = 670, y = GameWorld.GROUND_Y - HEIGHT;
     /** Center-to-center distance in world pixels; zero disables detection for practice/tests. */
+    public float velocityY;
+    public boolean grounded=true, climbing;
     public float detectionRadius = DEFAULT_DETECTION_RADIUS;
     public static final int DEFAULT_MAX_HEALTH = 100;
     public final int maxHealth;
@@ -59,6 +61,7 @@ public final class Enemy {
     }
     public State state() { return defeated() ? State.DEAD : posture.broken() ? State.POSTURE_BROKEN : state; }
     public void reset() {
+        velocityY=0; grounded=true; climbing=false;
         posture.reset();
         move = EnemyMove.NORMAL_SLASH; nextMove = strike = 0; moveInProgress = false; betweenMoves = 0;
         x = 670; y = GameWorld.GROUND_Y - HEIGHT; health = maxHealth;
@@ -79,7 +82,8 @@ public final class Enemy {
         return detectionRadius > 0 && dx * dx + dy * dy <= detectionRadius * detectionRadius;
     }
     private void enter(State next, float duration) { state = next; stateTime = phaseDuration = duration; }
-    public void update(float dt, Player player) {
+    public void update(float dt, Player player) { update(dt,player,false); }
+    public void update(float dt, Player player, boolean navigating) {
         if (!Float.isFinite(dt) || dt <= 0 || player.defeated()) return;
         if (defeated()) { state = State.DEAD; return; }
         if (posture.broken()) { breakPosture(); return; }
@@ -111,7 +115,7 @@ public final class Enemy {
         if (dx != 0) facingRight = dx > 0;
         float gap = Math.abs(dx) - (WIDTH + Player.WIDTH) / 2;
         boolean sameHeight = player.y < y + HEIGHT - 8 && player.y + Player.HEIGHT > y + 10;
-        if (gap <= MELEE_DISTANCE + .001f && sameHeight) {
+        if (!navigating && grounded && !climbing && gap <= MELEE_DISTANCE + .001f && sameHeight) {
             if (betweenMoves > 0) { state = State.IDLE; return; }
             move = SEQUENCE[nextMove]; strike = 0; moveInProgress = true;
             hitThisAttack = false;
@@ -119,7 +123,7 @@ public final class Enemy {
         } else {
             state = State.CHASE;
             float distance = Math.min(SPEED * dt, Math.max(0, gap - MELEE_DISTANCE));
-            x += (facingRight ? 1 : -1) * distance;
+            if(!navigating) x += (facingRight ? 1 : -1) * distance;
             x = Math.max(0, Math.min(GameWorld.WIDTH - WIDTH, x));
         }
     }

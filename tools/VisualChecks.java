@@ -22,7 +22,7 @@ public final class VisualChecks {
         check(enemy.state() == state && enemy.strikeNumber() == strike, "reaches animation combat phase");
     }
     private static Game move(EnemyMove wanted) {
-        Game game = new Game(new CombatConfig(.25, 10000, 0, 25, 35, 1, 1), 10000, 10000);
+        Game game = Game.combatArena(new CombatConfig(.25, 10000, 0, 25, 35, 1, 1), 10000, 10000);
         game.player.x = game.enemy.x - Player.WIDTH - 20;
         int count = 0;
         while (!(game.enemy.move() == wanted && game.enemy.state() == Enemy.State.ATTACK_WINDUP) && count++ < 5000)
@@ -51,6 +51,12 @@ public final class VisualChecks {
             clock.reset(); clock.play(SpriteClip.NINJA_RUN, 0, 7, 12, true, 0);
             for (int i = 0; i < fps; i++) clock.advance(1.0 / fps);
             check(clock.frame() == 4, "loop playback independent of frame rate " + fps);
+        }
+        BufferedImage terrain=image(TerrainArt.SHEET);
+        check(terrain.getWidth()==512&&terrain.getHeight()==96,"actual terrain sheet dimensions");
+        for(TerrainArt tile:TerrainArt.values()) {
+            check(tile.x+tile.width<=terrain.getWidth()&&tile.y+tile.height<=terrain.getHeight(),"terrain source bounds "+tile);
+            check(visible(terrain,tile.x,tile.y,tile.width,tile.height),"terrain entry contains actual pixels "+tile);
         }
         for (SpriteClip clip : SpriteClip.values()) {
             check(!clip.flip(clip.facesRight) && clip.flip(!clip.facesRight), "native orientation and flip " + clip);
@@ -91,7 +97,7 @@ public final class VisualChecks {
         }
         check(Viewport.scale(0,0) == 0, "empty viewport safe");
 
-        Game game = new Game(); CharacterAnimations animations = new CharacterAnimations(); animations.update(game, 0);
+        Game game = Game.combatArena(); CharacterAnimations animations = new CharacterAnimations(); animations.update(game, 0);
         check(animations.playerPose() == CharacterAnimations.Pose.IDLE && animations.enemyPose() == CharacterAnimations.Pose.IDLE, "initial idle poses");
         for (int i = 0; i < 10; i++) tick(game, animations, 1, false, false);
         check(animations.playerPose() == CharacterAnimations.Pose.RUN && animations.player.frame() > 0, "running advances without restarting each frame");
@@ -159,7 +165,7 @@ public final class VisualChecks {
             int frame = animations.enemy.frame(); animations.update(game, .05);
             check(animations.enemy.frame() == frame, "attack visuals cannot advance while combat phase is paused");
         }
-        game = new Game(); int hp = game.player.health, enemyHp = game.enemy.health; float x = game.player.x;
+        game = Game.combatArena(); int hp = game.player.health, enemyHp = game.enemy.health; float x = game.player.x;
         animations = new CharacterAnimations();
         for(int i=0;i<1000;i++) animations.update(game,DT);
         check(game.player.health == hp && game.enemy.health == enemyHp && game.player.x == x,

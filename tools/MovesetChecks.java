@@ -161,7 +161,7 @@ public final class MovesetChecks {
         for (int i = 0; i < 240; i++) { e.update(DT, p); e.tryHit(p); }
     }
     private static Game run(int fps) {
-        Game g = new Game(TEST, 10000, 10000); g.player.x = g.enemy.x - Player.WIDTH - 20;
+        Game g = Game.combatArena(TEST, 10000, 10000); g.player.x = g.enemy.x - Player.WIDTH - 20;
         for (int i = 0; i < fps * 12; i++) g.update(1f / fps, 0, false, false);
         return g;
     }
