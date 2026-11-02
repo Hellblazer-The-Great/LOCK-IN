@@ -1,0 +1,40 @@
+{
+  "id": "ninja",
+  "kind": "player",
+  "maxHealth": 100,
+  "width": 36,
+  "height": 64,
+  "speed": 180,
+  "acceleration": 0,
+  "jumpSpeed": 590,
+  "gravity": 1500,
+  "climbSpeed": 140,
+  "airSpeed": 180,
+  "dash": {
+    "duration": 0.18,
+    "speed": 950,
+    "cooldown": 0.45,
+    "iframeStart": 0.04,
+    "iframeEnd": 0.14
+  },
+  "deathblowDuration": 0.3,
+  "attack": "player_slash",
+  "combo": "player_chain",
+  "behavior": "",
+  "animations": {
+    "idle": "ninja_idle",
+    "run": "ninja_run",
+    "jump": "ninja_jump",
+    "fall": "ninja_fall",
+    "guard": "ninja_guard",
+    "deflect": "ninja_deflect",
+    "dash": "ninja_dash",
+    "hurt": "ninja_hurt",
+    "stagger": "ninja_stagger",
+    "death": "ninja_death",
+    "deathblow": "ninja_deathblow"
+  },
+  "combatProfile": "shinobi_guard",
+  "maxPosture": 100,
+  "postureRecovery": 12
+}

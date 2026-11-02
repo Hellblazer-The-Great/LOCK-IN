@@ -1,0 +1,458 @@
+{
+  "animations": [
+    {
+      "id": "ninja_idle",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Idle/01.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Idle/02.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Idle/03.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Idle/04.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Idle/05.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Idle/06.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Idle/07.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Idle/08.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": true,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_run",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/01.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/02.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/03.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/04.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/05.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/06.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/07.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/08.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": true,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_jump",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/01.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/02.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/03.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/04.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/05.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/06.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_fall",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/09.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/10.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/11.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Jump/12.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_guard",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/01.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/02.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/03.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/04.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/05.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/06.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/07.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/08.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_deflect",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/01.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/02.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/03.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Defend/04.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_dash",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/05.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/06.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/07.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Move/08.png",
+          "index": 0
+        }
+      ],
+      "fps": 24,
+      "loop": true,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_hurt",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Hurt/01.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Hurt/02.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Hurt/03.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_stagger",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Hurt/01.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Hurt/02.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Hurt/03.png",
+          "index": 0
+        }
+      ],
+      "fps": 9,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_death",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Hurt/01.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Hurt/02.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Hurt/03.png",
+          "index": 0
+        }
+      ],
+      "fps": 9,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_deathblow",
+      "frameWidth": 96,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack2/04.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack2/05.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack2/06.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_prepare",
+      "frameWidth": 96,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack1/01.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack1/02.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack1/03.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_strike",
+      "frameWidth": 96,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack1/04.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack1/05.png",
+          "index": 0
+        },
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack1/06.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    },
+    {
+      "id": "ninja_recover",
+      "frameWidth": 96,
+      "frameHeight": 64,
+      "columns": 1,
+      "frames": [
+        {
+          "asset": "../sprites/DarkNinja/frames/Attack1/06.png",
+          "index": 0
+        }
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 30,
+      "anchorY": 56,
+      "scale": 3.4,
+      "events": []
+    }
+  ]
+}

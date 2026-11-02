@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "startLevel": "castle",
+  "entities": [
+    "entities/player.json",
+    "entities/enemy.json"
+  ],
+  "attacks": [
+    "combat/attacks.json"
+  ],
+  "combos": [
+    "combat/combos.json"
+  ],
+  "animations": [
+    "animations/player.json",
+    "animations/enemy.json"
+  ],
+  "behaviors": [
+    "behaviors/enemy.json"
+  ],
+  "levels": [
+    {
+      "id": "castle",
+      "file": "levels/test_arena.tmj"
+    }
+  ],
+  "defenses": [
+    "combat/defense.json"
+  ]
+}

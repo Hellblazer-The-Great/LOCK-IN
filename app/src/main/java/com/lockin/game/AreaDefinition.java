@@ -2,9 +2,18 @@ package com.lockin.game;
 
 /** Immutable authored geometry. Surface zero is the solid arena floor; others are one-way decks. */
 public final class AreaDefinition {
-  public record Platform(float left, float right, float top, boolean oneWay) {}
+  public record Platform(float left, float right, float top, boolean oneWay, float thickness) {
+    public Platform(float l, float r, float t, boolean o) {
+      this(l, r, t, o, 32);
+    }
+  }
 
-  public record Ladder(float x, int bottom, int top) {}
+  public record Ladder(
+      float x, int bottom, int top, float width, float openingWidth, float entryRadius) {
+    public Ladder(float x, int b, int t) {
+      this(x, b, t, 80, 112, 30);
+    }
+  }
 
   public record Spawn(float x, int surface) {}
 
@@ -52,6 +61,20 @@ public final class AreaDefinition {
       float height,
       float groundY,
       boolean continuous) {
+    this(name, platforms, ladders, spawns, links, width, height, groundY, continuous, null);
+  }
+
+  public AreaDefinition(
+      String name,
+      Platform[] platforms,
+      Ladder[] ladders,
+      Spawn[] spawns,
+      Link[] links,
+      float width,
+      float height,
+      float groundY,
+      boolean continuous,
+      Solid[] authoredSolids) {
     this.width = width;
     this.height = height;
     this.groundY = groundY;
@@ -77,7 +100,7 @@ public final class AreaDefinition {
       if (cursor < deck.right())
         pieces.add(new Solid(cursor, deck.right(), deck.top(), i == 0 ? height : deck.top() + 32));
     }
-    solids = pieces.toArray(new Solid[0]);
+    solids = authoredSolids == null ? pieces.toArray(new Solid[0]) : authoredSolids.clone();
   }
 
   public int platformCount() {
@@ -86,6 +109,15 @@ public final class AreaDefinition {
 
   public Platform platform(int i) {
     return platforms[i];
+  }
+
+  public Ladder ladderFor(Link link) {
+    for (Ladder ladder : ladders)
+      if (Math.abs(ladder.x() - link.launch()) < .01f
+          && ((ladder.bottom() == link.from() && ladder.top() == link.to())
+              || (ladder.top() == link.from() && ladder.bottom() == link.to()))) return ladder;
+    throw new IllegalStateException(
+        "Missing ladder for surfaces " + link.from() + " -> " + link.to());
   }
 
   public int ladderCount() {
