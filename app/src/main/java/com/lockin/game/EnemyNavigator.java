@@ -2,9 +2,16 @@ package com.lockin.game;
 
 /** Small deterministic breadth-first surface graph. A committed edge is held until landing. */
 public final class EnemyNavigator {
-  private final WorldNavigator world=new WorldNavigator();
-  public void yieldTo(float x){world.yieldTo(x);}
-  public boolean yielding(){return world.yielding();}
+  private final WorldNavigator world = new WorldNavigator();
+
+  public void yieldTo(float x) {
+    world.yieldTo(x);
+  }
+
+  public boolean yielding() {
+    return world.yielding();
+  }
+
   private AreaDefinition.Link active;
   private boolean airborne;
   private final int[] queue = new int[8], via = new int[8];
@@ -16,7 +23,7 @@ public final class EnemyNavigator {
   }
 
   public boolean update(Enemy e, Player p, AreaDefinition a, float dt) {
-    if(a.continuous)return world.update(e,p,a,dt);
+    if (a.continuous) return world.update(e, p, a, dt);
     if (e.defeated()
         || e.posture.broken()
         || e.state() == Enemy.State.ATTACK_WINDUP
@@ -25,10 +32,10 @@ public final class EnemyNavigator {
       e.climbing = false;
       return false;
     }
-    int from = a.surface(e.x + Enemy.WIDTH / 2, e.y + Enemy.HEIGHT),
-        to = a.surface(p.x + Player.WIDTH / 2, p.y + Player.HEIGHT);
+    int from = a.surface(e.x + e.width / 2, e.y + e.height),
+        to = a.surface(p.x + p.width / 2, p.y + p.height);
     if (active != null
-        && Math.abs(e.y + Enemy.HEIGHT - a.platform(active.to()).top()) < .1f
+        && Math.abs(e.y + e.height - a.platform(active.to()).top()) < .1f
         && e.grounded) reset();
     if (active != null && airborne && e.grounded) {
       reset();
@@ -55,23 +62,23 @@ public final class EnemyNavigator {
       while (a.link(via[node]).from() != from) node = a.link(via[node]).from();
       active = a.link(via[node]);
     }
-    float center = e.x + Enemy.WIDTH / 2;
+    float center = e.x + e.width / 2;
     if (active.travel() == AreaDefinition.Travel.LADDER) {
       float dx = active.launch() - center;
       if (Math.abs(dx) > 1 && !e.climbing) walk(e, dx, dt);
       else {
-        e.x = active.launch() - Enemy.WIDTH / 2;
+        e.x = active.launch() - e.width / 2;
         e.climbing = true;
         e.velocityY = 0;
         e.grounded = false;
         float target = a.platform(active.to()).top();
-        float feet = e.y + Enemy.HEIGHT;
+        float feet = e.y + e.height;
         float delta =
             Math.copySign(
                 Math.min(Math.abs(target - feet), TerrainPhysics.CLIMB_SPEED * dt), target - feet);
         e.y += delta;
-        if (Math.abs(target - e.y - Enemy.HEIGHT) < .1f) {
-          e.y = target - Enemy.HEIGHT;
+        if (Math.abs(target - e.y - e.height) < .1f) {
+          e.y = target - e.height;
           e.climbing = false;
           e.grounded = true;
           reset();
@@ -99,7 +106,7 @@ public final class EnemyNavigator {
 
   private void walk(Enemy e, float dx, float dt) {
     if (dx != 0) e.facingRight = dx > 0;
-    e.x += Math.copySign(Math.min(Math.abs(dx), Enemy.SPEED * dt), dx);
-    e.x = Math.max(0, Math.min(GameWorld.WIDTH - Enemy.WIDTH, e.x));
+    e.x += Math.copySign(Math.min(Math.abs(dx), e.speed * dt), dx);
+    e.x = Math.max(0, Math.min(GameWorld.WIDTH - e.width, e.x));
   }
 }

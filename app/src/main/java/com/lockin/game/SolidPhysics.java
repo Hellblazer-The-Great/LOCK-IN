@@ -57,7 +57,7 @@ public final class SolidPhysics {
         && !p.deathblowing()
         && !jump
         && vertical != 0) {
-      int id = ladderAt(a, p.x + Player.WIDTH / 2, oldY + Player.HEIGHT, vertical);
+      int id = ladderAt(a, p.x + p.width / 2, oldY + p.height, vertical);
       if (id >= 0) {
         p.climbing = true;
         p.ladder = id;
@@ -66,51 +66,48 @@ public final class SolidPhysics {
     if (p.climbing) {
       var l = a.ladder(p.ladder);
       float top = a.platform(l.top()).top(), bottom = a.platform(l.bottom()).top();
-      float oldFeet = oldY + Player.HEIGHT;
+      float oldFeet = oldY + p.height;
       if (move != 0 && oldFeet <= top + .02f) {
         // Pull over the lip under explicit horizontal input, with feet on the floor plane.
-        p.y = top - Player.HEIGHT;
+        p.y = top - p.height;
         p.velocityY = 0;
-        p.x = horizontal(a, oldX, p.x, p.y, Player.WIDTH, Player.HEIGHT);
-        if (Math.abs(p.x + Player.WIDTH / 2 - l.x())
-            >= WorldDefinition.OPENING_WIDTH / 2 + Player.WIDTH / 2) {
+        p.x = horizontal(a, oldX, p.x, p.y, p.width, p.height);
+        if (Math.abs(p.x + p.width / 2 - l.x()) >= l.openingWidth() / 2 + p.width / 2) {
           p.climbing = false;
-          p.grounded = supported(a, p.x, p.y, Player.WIDTH, Player.HEIGHT);
+          p.grounded = supported(a, p.x, p.y, p.width, p.height);
         }
         return;
       }
       if (move != 0) {
         p.climbing = false;
       } else {
-        float desired = l.x() - Player.WIDTH / 2;
+        float desired = l.x() - p.width / 2;
         p.x =
             oldX
                 + Math.copySign(
-                    Math.min(Math.abs(desired - oldX), TerrainPhysics.CLIMB_SPEED * dt),
-                    desired - oldX);
+                    Math.min(Math.abs(desired - oldX), p.climbSpeed * dt), desired - oldX);
         if (Math.abs(p.x - desired) > .1f) {
           p.y = oldY;
           p.velocityY = 0;
           p.grounded = false;
           return;
         }
-        float feet =
-            Math.max(top, Math.min(bottom, oldFeet + vertical * TerrainPhysics.CLIMB_SPEED * dt));
-        p.y = vertical(a, p.x, oldY, feet - Player.HEIGHT, Player.WIDTH, Player.HEIGHT);
+        float feet = Math.max(top, Math.min(bottom, oldFeet + vertical * p.climbSpeed * dt));
+        p.y = vertical(a, p.x, oldY, feet - p.height, p.width, p.height);
         p.velocityY = 0;
         p.grounded = false;
         if (feet >= bottom && vertical > 0) {
           p.climbing = false;
-          p.grounded = supported(a, p.x, p.y, Player.WIDTH, Player.HEIGHT);
+          p.grounded = supported(a, p.x, p.y, p.width, p.height);
         }
         return;
       }
     }
-    p.x = horizontal(a, oldX, p.x, oldY, Player.WIDTH, Player.HEIGHT);
-    float resolved = vertical(a, p.x, oldY, p.y, Player.WIDTH, Player.HEIGHT);
+    p.x = horizontal(a, oldX, p.x, oldY, p.width, p.height);
+    float resolved = vertical(a, p.x, oldY, p.y, p.width, p.height);
     if (Math.abs(resolved - p.y) > .0001f) p.velocityY = 0;
     p.y = resolved;
-    p.grounded = supported(a, p.x, p.y, Player.WIDTH, Player.HEIGHT);
+    p.grounded = supported(a, p.x, p.y, p.width, p.height);
   }
 
   public static int ladderAt(AreaDefinition a, float center, float feet, int vertical) {
@@ -118,12 +115,12 @@ public final class SolidPhysics {
       var l = a.ladder(i);
       float top = a.platform(l.top()).top(), bottom = a.platform(l.bottom()).top();
       // Down entry permits the actor to step into the aperture from a supported lip.
-      if (Math.abs(center - l.x()) <= WorldDefinition.OPENING_WIDTH / 2 + 4
+      if (Math.abs(center - l.x()) <= l.openingWidth() / 2 + 4
           && feet >= top - .02f
           && feet <= bottom + .02f
           && !(vertical < 0 && feet <= top)
           && !(vertical > 0 && feet >= bottom)) {
-        if (Math.abs(center - l.x()) <= WorldDefinition.ENTRY_RADIUS
+        if (Math.abs(center - l.x()) <= l.entryRadius()
             || (vertical > 0 && Math.abs(feet - top) < .02f)) return i;
       }
     }
@@ -132,18 +129,18 @@ public final class SolidPhysics {
 
   public static void enemy(Enemy e, AreaDefinition a, float oldX, float oldY, float dt) {
     if (e.defeated()) return;
-    e.x = horizontal(a, oldX, e.x, oldY, Enemy.WIDTH, Enemy.HEIGHT);
+    e.x = horizontal(a, oldX, e.x, oldY, e.width, e.height);
     if (e.climbing) {
-      float y = vertical(a, e.x, oldY, e.y, Enemy.WIDTH, Enemy.HEIGHT);
+      float y = vertical(a, e.x, oldY, e.y, e.width, e.height);
       e.y = y;
       e.velocityY = 0;
       return;
     }
-    e.velocityY += GameWorld.GRAVITY * dt;
+    e.velocityY += e.gravity * dt;
     float desired = e.y + e.velocityY * dt;
-    float resolved = vertical(a, e.x, oldY, desired, Enemy.WIDTH, Enemy.HEIGHT);
+    float resolved = vertical(a, e.x, oldY, desired, e.width, e.height);
     if (Math.abs(resolved - desired) > .0001f) e.velocityY = 0;
     e.y = resolved;
-    e.grounded = supported(a, e.x, e.y, Enemy.WIDTH, Enemy.HEIGHT);
+    e.grounded = supported(a, e.x, e.y, e.width, e.height);
   }
 }

@@ -1,0 +1,17 @@
+{
+  "defenses": [
+    {
+      "id": "shinobi_guard",
+      "deflectWindow": 0.32,
+      "recoveryDelay": 1,
+      "brokenDuration": 1,
+      "spamStep": 0.05,
+      "minimumDeflectWindow": 0.05,
+      "spamRecovery": 0.8,
+      "breakImmunity": 1,
+      "deathblowRange": 90,
+      "blockPostureMultiplier": 1,
+      "deflectPostureMultiplier": 1
+    }
+  ]
+}

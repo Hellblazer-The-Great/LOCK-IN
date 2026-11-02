@@ -4,6 +4,11 @@ package com.lockin.game;
 public final class CastleChecks {
   static final float DT = 1f / 120;
   static int checks;
+  static boolean contentMode;
+
+  static Game fresh() {
+    return contentMode ? new Game(FixtureContent.get()) : new Game();
+  }
 
   static void check(boolean yes, String text) {
     checks++;
@@ -28,7 +33,7 @@ public final class CastleChecks {
   }
 
   static Game geometry() {
-    Game g = new Game();
+    Game g = fresh();
     for (Enemy e : g.enemies()) {
       e.detectionRadius = 0;
       e.takeDamage(e.health);
@@ -81,10 +86,12 @@ public final class CastleChecks {
       continuous &= g.player.x - before <= Player.SPEED * DT + .01;
     }
     check(continuous, "region boundary never teleports");
-    check(g.player.x > 1800 && g.areaIndex() == 1, "continuous traversal reaches courtyard");
+    check(
+        g.player.x > 1800 && g.regionName().equals("Upper Courtyard"),
+        "continuous traversal reaches courtyard");
     near(g.player.y + 64, 940, "lower route stays grounded");
     walk(g, 300);
-    check(g.areaIndex() == 0, "continuous backtracking");
+    check(g.regionName().equals("Training Grounds"), "continuous backtracking");
     check(
         g.enemies()[0] == original && original.defeated(),
         "backtracking preserves enemy identity and defeat");
@@ -199,14 +206,14 @@ public final class CastleChecks {
     Camera c = new Camera();
     c.reset(g.player, g.area().definition);
     near(c.x(), 0, "camera initial left clamp");
-    near(c.y(), 540, "camera initial bottom clamp");
+    near(c.y(), g.area().definition.height - 540, "camera initial bottom clamp");
     float px = g.player.x, py = g.player.y;
     g.player.x = 1500;
     g.player.y = 200;
     float old = c.x();
     c.update(g.player, g.area().definition, DT);
     check(c.x() > old && c.x() < 500, "smooth horizontal follow");
-    check(c.y() < 540 && c.y() > 0, "smooth vertical follow");
+    check(c.y() < g.area().definition.height - 540 && c.y() > 0, "smooth vertical follow");
     for (int i = 0; i < 400; i++) c.update(g.player, g.area().definition, DT);
     check(
         c.visible(g.player.x, g.player.y, g.player.x + 36, g.player.y + 64),
@@ -223,10 +230,10 @@ public final class CastleChecks {
     check(c.x() < far && c.x() > 0, "smooth horizontal backtracking");
     for (int i = 0; i < 600; i++) c.update(g.player, g.area().definition, DT);
     near(c.x(), 0, "backtracking left clamp");
-    near(c.y(), 540, "backtracking bottom clamp");
+    near(c.y(), g.area().definition.height - 540, "backtracking bottom clamp");
     c.reset(g.player, g.area().definition);
     near(c.x(), 0, "reset camera x");
-    near(c.y(), 540, "reset camera y");
+    near(c.y(), g.area().definition.height - 540, "reset camera y");
     near(g.player.x, px, "camera never mutates player x");
     near(g.player.y, py, "camera never mutates player y");
   }
@@ -402,6 +409,7 @@ public final class CastleChecks {
   }
 
   public static void main(String[] args) {
+    contentMode = args.length > 0 && args[0].equals("--content");
     solids();
     camera();
     traversal();

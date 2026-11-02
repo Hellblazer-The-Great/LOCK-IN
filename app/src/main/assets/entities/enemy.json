@@ -1,0 +1,34 @@
+{
+  "id": "samurai",
+  "kind": "enemy",
+  "maxHealth": 100,
+  "width": 44,
+  "height": 70,
+  "speed": 110,
+  "acceleration": 0,
+  "jumpSpeed": 590,
+  "gravity": 1500,
+  "climbSpeed": 140,
+  "airSpeed": 250,
+  "dash": {
+    "duration": 0.18,
+    "speed": 950,
+    "cooldown": 0.45,
+    "iframeStart": 0.04,
+    "iframeEnd": 0.14
+  },
+  "deathblowDuration": 0.3,
+  "attack": "normal_slash",
+  "combo": "",
+  "behavior": "samurai_melee",
+  "animations": {
+    "idle": "samurai_idle",
+    "run": "samurai_run",
+    "hurt": "samurai_hurt",
+    "stagger": "samurai_stagger",
+    "death": "samurai_death"
+  },
+  "combatProfile": "shinobi_guard",
+  "maxPosture": 100,
+  "postureRecovery": 12
+}

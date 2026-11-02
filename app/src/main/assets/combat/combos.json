@@ -1,0 +1,20 @@
+{
+  "combos": [
+    {
+      "id": "samurai_sequence",
+      "sequence": [
+        "normal_slash",
+        "double_slash",
+        "heavy_overhead"
+      ],
+      "followups": []
+    },
+    {
+      "id": "player_chain",
+      "sequence": [
+        "player_slash"
+      ],
+      "followups": []
+    }
+  ]
+}

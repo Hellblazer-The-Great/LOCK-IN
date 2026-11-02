@@ -1,1 +1,34 @@
 plugins { id 'com.android.application' version '8.9.2' apply false }
+
+// The same Java parser/simulation validates content on the host before APK packaging.
+def contentClasses = layout.buildDirectory.dir('content-tools')
+tasks.register('compileContentTools', JavaCompile) {
+    source fileTree('app/src/main/java') {
+        include '**/*.java'
+        exclude '**/MainActivity.java', '**/GameScreen.java', '**/InputHandler.java',
+                '**/SpritePainter.java', '**/ContentPainter.java'
+    }
+    source files('tools/ValidateContent.java', 'tools/ContentChecks.java')
+    classpath = files()
+    destinationDirectory = contentClasses
+    sourceCompatibility = "17"
+    targetCompatibility = "17"
+    options.release = 17
+}
+tasks.register('validateContent', JavaExec) {
+    group = 'verification'
+    description = 'Validate the bundled JSON/Tiled pack, references and PNG frame bounds.'
+    dependsOn 'compileContentTools'
+    classpath = files(contentClasses, 'app/src/main/assets')
+    mainClass = 'com.lockin.game.ValidateContent'
+    args file('app/src/main/assets').absolutePath
+    workingDir = rootDir
+}
+tasks.register('testContent', JavaExec) {
+    group = 'verification'
+    description = 'Run content-editing A–E, combat, animation and level-transition regressions.'
+    dependsOn 'compileContentTools'
+    classpath = files(contentClasses, 'app/src/main/assets')
+    mainClass = 'com.lockin.game.ContentChecks'
+    workingDir = rootDir
+}

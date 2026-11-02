@@ -1,0 +1,29 @@
+{
+  "behaviors": [
+    {
+      "id": "samurai_melee",
+      "type": "melee",
+      "selection": "sequence",
+      "combo": "samurai_sequence",
+      "weights": [
+        1,
+        1,
+        1
+      ],
+      "detectionRadius": 340,
+      "engagementDistance": 30,
+      "betweenMoves": 0.12,
+      "staggerRecovery": 0.7,
+      "chase": true,
+      "facePlayer": true,
+      "seed": 1337,
+      "transitions": [
+        "detect",
+        "in_melee_range",
+        "timeline_complete",
+        "posture_broken",
+        "health_zero"
+      ]
+    }
+  ]
+}

@@ -33,13 +33,23 @@ public final class TerrainPhysics {
   }
 
   public static void player(
-      Player p, AreaDefinition area, float oldX, float oldY, float dt, int vertical, int move, boolean jump) {
-    if(area.continuous){SolidPhysics.player(p,area,oldX,oldY,dt,vertical,move,jump);return;}
+      Player p,
+      AreaDefinition area,
+      float oldX,
+      float oldY,
+      float dt,
+      int vertical,
+      int move,
+      boolean jump) {
+    if (area.continuous) {
+      SolidPhysics.player(p, area, oldX, oldY, dt, vertical, move, jump);
+      return;
+    }
     p.dropTime = Math.max(0, p.dropTime - dt);
     if (vertical > 0
         && p.grounded
-        && area.surface(p.x + Player.WIDTH / 2, oldY + Player.HEIGHT) > 0
-        && ladderAt(area, p.x + Player.WIDTH / 2, oldY + Player.HEIGHT, vertical) < 0) {
+        && area.surface(p.x + p.width / 2, oldY + p.height) > 0
+        && ladderAt(area, p.x + p.width / 2, oldY + p.height, vertical) < 0) {
       p.dropTime = .25f;
       p.grounded = false;
       p.y += 2;
@@ -52,7 +62,7 @@ public final class TerrainPhysics {
         && !jump
         && move == 0
         && vertical != 0) {
-      int ladder = ladderAt(area, p.x + Player.WIDTH / 2, oldY + Player.HEIGHT, vertical);
+      int ladder = ladderAt(area, p.x + p.width / 2, oldY + p.height, vertical);
       if (ladder >= 0) {
         p.climbing = true;
         p.ladder = ladder;
@@ -60,11 +70,10 @@ public final class TerrainPhysics {
     }
     if (p.climbing) {
       AreaDefinition.Ladder l = area.ladder(p.ladder);
-      p.x = l.x() - Player.WIDTH / 2;
+      p.x = l.x() - p.width / 2;
       float top = area.platform(l.top()).top(), bottom = area.platform(l.bottom()).top();
-      float feet =
-          Math.max(top, Math.min(bottom, oldY + Player.HEIGHT + vertical * CLIMB_SPEED * dt));
-      p.y = feet - Player.HEIGHT;
+      float feet = Math.max(top, Math.min(bottom, oldY + p.height + vertical * CLIMB_SPEED * dt));
+      p.y = feet - p.height;
       p.velocityY = 0;
       p.grounded = false;
       if (feet <= top || feet >= bottom) {
@@ -72,22 +81,19 @@ public final class TerrainPhysics {
         p.grounded = true;
       }
     } else {
-      float feet =
-          landing(
-              area, p.x, Player.WIDTH, oldY + Player.HEIGHT, p.y + Player.HEIGHT, p.dropTime > 0);
+      float feet = landing(area, p.x, p.width, oldY + p.height, p.y + p.height, p.dropTime > 0);
       if (p.velocityY >= 0
-          && feet <= p.y + Player.HEIGHT
-          && feet < p.y + Player.HEIGHT + .001f
-          && (feet < p.y + Player.HEIGHT
-              || supported(area, p.x, Player.WIDTH, feet, p.dropTime > 0))) {
-        p.y = feet - Player.HEIGHT;
+          && feet <= p.y + p.height
+          && feet < p.y + p.height + .001f
+          && (feet < p.y + p.height || supported(area, p.x, p.width, feet, p.dropTime > 0))) {
+        p.y = feet - p.height;
         p.velocityY = 0;
         p.grounded = true;
       } else p.grounded = false;
     }
-    p.x = Math.max(0, Math.min(GameWorld.WIDTH - Player.WIDTH, p.x));
-    if (p.y + Player.HEIGHT >= GameWorld.GROUND_Y) {
-      p.y = GameWorld.GROUND_Y - Player.HEIGHT;
+    p.x = Math.max(0, Math.min(GameWorld.WIDTH - p.width, p.x));
+    if (p.y + p.height >= GameWorld.GROUND_Y) {
+      p.y = GameWorld.GROUND_Y - p.height;
       p.velocityY = 0;
       p.grounded = true;
     }
@@ -110,14 +116,14 @@ public final class TerrainPhysics {
     if (e.climbing) return;
     e.velocityY += GameWorld.GRAVITY * dt;
     e.y += e.velocityY * dt;
-    float feet = landing(area, e.x, Enemy.WIDTH, oldY + Enemy.HEIGHT, e.y + Enemy.HEIGHT, false);
-    e.grounded = e.velocityY >= 0 && supported(area, e.x, Enemy.WIDTH, feet, false);
+    float feet = landing(area, e.x, e.width, oldY + e.height, e.y + e.height, false);
+    e.grounded = e.velocityY >= 0 && supported(area, e.x, e.width, feet, false);
     if (e.grounded) {
-      e.y = feet - Enemy.HEIGHT;
+      e.y = feet - e.height;
       e.velocityY = 0;
     }
-    if (e.y + Enemy.HEIGHT >= GameWorld.GROUND_Y) {
-      e.y = GameWorld.GROUND_Y - Enemy.HEIGHT;
+    if (e.y + e.height >= GameWorld.GROUND_Y) {
+      e.y = GameWorld.GROUND_Y - e.height;
       e.velocityY = 0;
       e.grounded = true;
     }

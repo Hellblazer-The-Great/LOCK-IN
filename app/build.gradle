@@ -6,11 +6,15 @@ android {
         applicationId 'com.lockin.game'
         minSdk 23
         targetSdk 35
-        versionCode 7
+        versionCode 8
         versionName '0.3.2'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+tasks.named('preBuild').configure {
+    dependsOn rootProject.tasks.named('validateContent')
 }

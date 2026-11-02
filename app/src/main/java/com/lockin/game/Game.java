@@ -1,5 +1,7 @@
 package com.lockin.game;
 
+import com.lockin.game.content.*;
+
 /** Simulation owned exclusively by the rendering thread. No Android dependencies. */
 public final class Game {
   public static final double STEP = 1.0 / 120;
@@ -36,6 +38,7 @@ public final class Game {
   }
 
   private boolean jumpQueued, attackQueued, dashQueued;
+  public final Content content;
   public final Player player;
 
   /** Compatibility alias for the first enemy in the current area. */
@@ -66,10 +69,47 @@ public final class Game {
   }
 
   public String regionName() {
+    if (content != null) {
+      for (var region : level().regions)
+        if (player.x >= region.x()
+            && player.x < region.x() + region.width()
+            && player.y >= region.y()
+            && player.y < region.y() + region.height()) return region.name();
+      return level().area.name;
+    }
     return continuous ? WorldDefinition.REGIONS[areaIndex()] : area().definition.name;
   }
 
   private void upgrades(float dt) {
+    if (content != null) {
+      noticeTime = Math.max(0, noticeTime - dt);
+      for (int i = 0; i < level().pickups.size(); i++)
+        if (!area().collected[i]) {
+          var item = level().pickups.get(i);
+          if (CollisionManager.overlaps(
+              player.x,
+              player.y,
+              player.x + player.width,
+              player.y + player.height,
+              item.x(),
+              item.y(),
+              item.x() + item.width(),
+              item.y() + item.height())) {
+            area().collected[i] = true;
+            if (item.kind().equals("health")) {
+              hpCollected = true;
+              player.healthUpgrade(item.amount());
+              notice = "+" + item.amount() + " MAX HP - FULL HEAL";
+            } else {
+              powerCollected = true;
+              player.powerUpgrade(item.amount());
+              notice = "ATTACK POWER x" + item.amount();
+            }
+            noticeTime = 3;
+          }
+        }
+      return;
+    }
     if (!continuous) return;
     noticeTime = Math.max(0, noticeTime - dt);
     if (!hpCollected && pickup(WorldDefinition.HP_X, WorldDefinition.HP_FEET)) {
@@ -90,8 +130,8 @@ public final class Game {
     return CollisionManager.overlaps(
         player.x,
         player.y,
-        player.x + Player.WIDTH,
-        player.y + Player.HEIGHT,
+        player.x + player.width,
+        player.y + player.height,
         x - 16,
         feet - 40,
         x + 16,
@@ -130,11 +170,12 @@ public final class Game {
   }
 
   public int areaIndex() {
+    if (content != null) return areaIndex;
     return continuous ? Math.max(0, Math.min(2, (int) (player.x / 960))) : areaIndex;
   }
 
   public AreaState area() {
-    return continuous ? world : areas[areaIndex];
+    return content != null ? areas[areaIndex] : continuous ? world : areas[areaIndex];
   }
 
   public Enemy[] enemies() {
@@ -171,11 +212,11 @@ public final class Game {
 
   private void enterArea(int index, boolean fromLeft) {
     areaIndex = index;
-    enemy = enemies()[0];
+    enemy = enemies().length == 0 ? null : enemies()[0];
     player.terrain = area().definition;
     player.finishTravel();
-    player.x = fromLeft ? 48 : GameWorld.WIDTH - Player.WIDTH - 48;
-    player.y = GameWorld.GROUND_Y - Player.HEIGHT;
+    player.x = fromLeft ? 48 : GameWorld.WIDTH - player.width - 48;
+    player.y = GameWorld.GROUND_Y - player.height;
     player.velocityY = 0;
     player.grounded = true;
     player.climbing = false;
@@ -184,12 +225,63 @@ public final class Game {
     jumpQueued = attackQueued = dashQueued = false;
   }
 
+  public LevelDef level() {
+    return area().level;
+  }
+
+  public void loadLevel(String id, String spawn) {
+    if (content == null) throw new IllegalStateException("No content pack");
+    int index = 0;
+    for (String key : content.levels.keySet()) {
+      if (key.equals(id)) break;
+      index++;
+    }
+    if (index >= areas.length) throw new IllegalArgumentException("Unknown level " + id);
+    LevelDef target = areas[index].level;
+    LevelDef.Spawn start = target.playerSpawns.get(spawn);
+    if (start == null)
+      throw new IllegalArgumentException(target.file + ": unknown player spawn " + spawn);
+    areaIndex = index;
+    player.terrain = area().definition;
+    player.finishTravel();
+    player.x = start.x();
+    player.y = start.feet() - player.height;
+    player.velocityY = 0;
+    player.facingRight = start.right();
+    player.grounded =
+        SolidPhysics.supported(player.terrain, player.x, player.y, player.width, player.height);
+    enemy = enemies().length == 0 ? null : enemies()[0];
+    transitionLock = .4f;
+    restartVersion++;
+    clearQueued();
+  }
+
   private void exits(int move) {
+    if (content != null) {
+      if (transitionLock > 0 || player.defeated()) return;
+      for (var exit : level().exits)
+        if (CollisionManager.overlaps(
+            player.x,
+            player.y,
+            player.x + player.width,
+            player.y + player.height,
+            exit.x(),
+            exit.y(),
+            exit.x() + exit.width(),
+            exit.y() + exit.height())) {
+          if (exit.level().isEmpty()) {
+            complete = true;
+            clearQueued();
+          } else loadLevel(exit.level(), exit.spawn());
+          break;
+        }
+      return;
+    }
     if (continuous) {
       if (move > 0
-          && player.x >= WorldDefinition.WIDTH - Player.WIDTH - 1
+          && player.x >= WorldDefinition.WIDTH - player.width - 1
           && player.grounded
-          && player.y + Player.HEIGHT >= WorldDefinition.GROUND - .1f) {
+          && player.y + player.height >= WorldDefinition.GROUND - .1f) {
         complete = true;
         clearQueued();
       }
@@ -197,9 +289,9 @@ public final class Game {
     }
     if (combatArena || transitionLock > 0 || player.defeated()) return;
     if (move > 0
-        && player.x >= GameWorld.WIDTH - Player.WIDTH - .01f
+        && player.x >= GameWorld.WIDTH - player.width - .01f
         && player.grounded
-        && player.y + Player.HEIGHT >= GameWorld.GROUND_Y - .1f) {
+        && player.y + player.height >= GameWorld.GROUND_Y - .1f) {
       if (areaIndex < 2) enterArea(areaIndex + 1, true);
       else {
         complete = true;
@@ -209,9 +301,10 @@ public final class Game {
         && player.x <= .01f
         && areaIndex > 0
         && player.grounded
-        && player.y + Player.HEIGHT >= GameWorld.GROUND_Y - .1f) enterArea(areaIndex - 1, false);
+        && player.y + player.height >= GameWorld.GROUND_Y - .1f) enterArea(areaIndex - 1, false);
   }
 
+  /** Historical JVM fixture constructor. Android uses Game(Content) exclusively. */
   public Game() {
     this(CombatConfig.DEFAULT);
   }
@@ -225,6 +318,7 @@ public final class Game {
   }
 
   private Game(CombatConfig config, int playerMaxHealth, int enemyMaxHealth, boolean continuous) {
+    this.content = null;
     this.continuous = continuous;
     player = new Player(config, playerMaxHealth);
     if (continuous) {
@@ -236,12 +330,24 @@ public final class Game {
       for (int i = 0; i < areas.length; i++)
         areas[i] = new AreaState(AreaDefinition.AREAS[i], config, enemyMaxHealth);
     }
-    enemy = enemies()[0];
+    enemy = enemies().length == 0 ? null : enemies()[0];
     player.terrain = area().definition;
     if (continuous) {
       player.x = 180;
-      player.y = WorldDefinition.GROUND - Player.HEIGHT;
+      player.y = WorldDefinition.GROUND - player.height;
     }
+  }
+
+  public Game(Content content) {
+    this.content = content;
+    continuous = true;
+    world = null;
+    LevelDef start = content.levels.get(content.startLevel);
+    player = new Player(content.entities.get(start.playerEntity), content);
+    areas = new AreaState[content.levels.size()];
+    int i = 0;
+    for (var level : content.levels.values()) areas[i++] = new AreaState(level, content);
+    loadLevel(start.id, start.startSpawn);
   }
 
   public void restart() {
@@ -253,12 +359,15 @@ public final class Game {
     hpCollected = powerCollected = false;
     noticeTime = 0;
     notice = "";
-    if (continuous) {
+    if (content != null) {
+      var start = content.levels.get(content.startLevel);
+      loadLevel(start.id, start.startSpawn);
+    } else if (continuous) {
       player.x = 180;
-      player.y = WorldDefinition.GROUND - Player.HEIGHT;
+      player.y = WorldDefinition.GROUND - player.height;
     }
-    areaIndex = 0;
-    enemy = enemies()[0];
+    if (content == null) areaIndex = 0;
+    enemy = enemies().length == 0 ? null : enemies()[0];
     player.terrain = combatArena ? null : area().definition;
     resetPending = complete = false;
     transitionLock = 0;

@@ -1,8 +1,10 @@
-# LOCK IN — v0.3.2: Continuous Shinobi Castle
+# LOCK IN — Data-driven Shinobi Castle
 
-A native Java Android action-platformer with a continuous **2,880×1,080** castle world, smooth two-axis camera, five independent enemies, solid floors and wide ladder openings. Explore elevated Training Grounds and Upper Courtyard routes for +50 maximum HP/full healing and double attack power. The performance hotfix, guard/deflection, posture, deathblows and dash remain in place. No Kotlin or game engine.
+A native Java Android action-platformer with a continuous **2,880×1,088** castle world, smooth two-axis camera, five independent enemies, solid floors and wide ladder openings. Explore elevated Training Grounds and Upper Courtyard routes for +50 maximum HP/full healing and double attack power. The performance hotfix, guard/deflection, posture, deathblows and dash remain in place. No Kotlin or game engine.
 
-See [world, camera, upgrades, collision rules, tuning and limitations](docs/CASTLE.md).
+**Edit the game through Tiled and JSON:** start with [CONTENT_EDITING.md](CONTENT_EDITING.md). The Android entry point loads `assets/manifest.json`; maps, actors, combat, animation and enemy selection use validated external definitions. Builds validate the content before packaging.
+
+See [implementation, file inventory and validation](docs/DATA_REFACTOR.md), and the [historical world design notes](docs/CASTLE.md).
 
 See [sprite mappings, verified layouts, animation priorities, and visual compromises](docs/SPRITES.md).
 
@@ -14,7 +16,7 @@ See [sprite mappings, verified layouts, animation priorities, and visual comprom
 4. Select an Android 6.0 / API 23 or newer device or emulator and press Run. Landscape is requested; the world also letterboxes in other window shapes.
 
 ```sh
-./gradlew assembleDebug lintDebug
+./gradlew validateContent testContent assembleDebug lintDebug
 # APK: app/build/outputs/apk/debug/app-debug.apk
 ./gradlew installDebug
 adb shell am start -n com.lockin.game/.MainActivity
@@ -24,9 +26,9 @@ On Windows use `gradlew.bat`. The Gradle 8.13 wrapper includes a distribution SH
 
 ## Play and verify
 
-The [timing hotfix](docs/TIMING-HOTFIX.md) remains in effect. v0.3.2 keeps 120 Hz simulation, bounded catch-up and timing diagnostics; terrain is cached in small culled chunks. VersionCode is 7.
+The [timing hotfix](docs/TIMING-HOTFIX.md) remains in effect. v0.3.2 keeps 120 Hz simulation, bounded catch-up and timing diagnostics; terrain is cached in small culled chunks. VersionCode is 8; versionName remains 0.3.2.
 
-Current validation: **1,737 checks pass**; debug APK and Android lint pass (zero errors, three existing manifest warnings). Physical-device performance is unverified.
+Current validation: **2,272 checks pass**; debug APK and Android lint pass (zero errors, three existing manifest warnings). Physical-device performance is unverified.
 
 Hold LEFT or RIGHT to move; tap JUMP or ATTACK; press/hold the dedicated GUARD button; tap DASH with a held direction, or without a direction to dash backward. Separate fingers can hold movement while tapping either action. Actions trigger on a new press, not continuously while held. Dragging between buttons updates the held state. Releasing/cancelling touches or pausing clears inputs. Opposing movement buttons cancel each other.
 
@@ -56,7 +58,7 @@ Double slash separates its two active events with a **280 ms windup**; each can 
 
 Unblocked enemy strikes apply baseline **20 HP + 25 posture**; heavy applies **40 HP + 50 posture**. Blocks prevent HP damage and add **25 posture**, or **50** for heavy. Deflections prevent HP damage and add **35 attacker posture**, or **70** for heavy, with no defender posture damage. Ordinary player strikes apply **25 HP + 25 enemy posture**. Both components of a living hit are committed even when health damage is lethal; later contacts on corpses do nothing. Each individual strike resolves once. A dash-invulnerable contact consumes that strike with no health, posture, block or deflect effect, so a lingering hitbox cannot catch the same dodge as i-frames expire.
 
-Enemy windup, strike and follow-through now use phase-synchronized Samurai animation frames. Heavy uses a downward strike, longer preparation and orange HEAVY marker; double slash uses distinct forward/return swing ranges and labels each preparation. Dash reuses the ninja run pose with a faint sprite trail. Collision and hitbox overlays can be enabled with `GameScreen.DEBUG_VISUALS`; they are hidden by default. The HUD shows player vitals and remaining enemies; each enemy has overhead health/posture bars. Dead enemies retain their corpse animation and stop attacking. `Enemy.detectionRadius` controls detection; zero disables it for stationary practice/regression tests.
+Enemy windup, strike and follow-through now use phase-synchronized Samurai animation frames. Heavy uses a downward strike, longer preparation and orange HEAVY marker; double slash uses distinct forward/return swing ranges and labels each preparation. Dash reuses the ninja run pose with a faint sprite trail. Collision and hitbox overlays can be enabled with `GameScreen.DEBUG_VISUALS`; they are hidden by default. The HUD shows player vitals and remaining enemies; each enemy has overhead health/posture bars. Dead enemies retain their corpse animation and stop attacking. `behaviors/enemy.json.detectionRadius` controls detection; zero disables it.
 
 ## Guard, deflection, and posture
 
@@ -73,7 +75,7 @@ Both posture meters have capacity **100**, recovering **12 units/second** after 
 
 After either break, posture resets to zero and **one second of posture immunity** prevents immediate break loops; this does not grant health invulnerability. Ordinary health-based enemy defeat still works. Restart clears guard, penalties, feedback, posture, stagger, immunity, dash/execution timers, queued actions, enemy sequence and the fixed-step accumulator.
 
-`CombatConfig` exposes the initial/minimum windows, penalty step, tap recovery time, posture capacity/recovery, block/deflect posture damage, quiet delay, break duration, immunity and deathblow range. Its original seven-argument constructor remains supported; the extended constructor provides all tuning. `new Game(config, playerMaxHealth, enemyMaxHealth)` sets health maxima, or edit the actors' `DEFAULT_MAX_HEALTH` constants for default gameplay. Maxima are reused on spawn and every restart, not hardcoded to 100. Default maximum health remains 100 for both actors.
+Gameplay tuning is loaded from `entities/*.json`, `combat/defense.json` and `combat/attacks.json`. Health maxima and posture capacities are per entity, reused on every restart. Default maximum health remains 100 for both actors. [The editing guide](CONTENT_EDITING.md) lists all fields, IDs and supported configuration choices.
 
 Every health bar uses `clamp(current / maximum, 0, 1)` and a fixed width: 200 virtual pixels in the HUD and 44 above the enemy. Posture bars also use normalized fractions. Invalid/zero maxima and non-finite values render empty; negative HP renders empty and overhealing renders full. HP text remains numeric.
 
@@ -81,12 +83,7 @@ Feedback: DEFLECT is yellow with contact rays; BLOCK cyan; HIT red; player POSTU
 
 ## Tuning locations
 
-- `WorldDefinition.java`: authored floors, ladder openings, graph connections, world bounds, spawns and collectible coordinates.
-- `SpriteClip.java`: uniform player/enemy render scales.
-- `Player.java`: `DAMAGE`, `POSTURE_DAMAGE`, `DEFAULT_MAX_HEALTH`, movement/jump/attack constants, `DASH_DURATION`, `DASH_IFRAMES`, `DASH_COOLDOWN`, `DASH_SPEED`, `DEATHBLOW_DURATION`. I-frame start/end derive from duration and iframe length.
-- `Enemy.java`: `DAMAGE`, `POSTURE_DAMAGE`, `DEFAULT_MAX_HEALTH`, detection/chase/engagement constants. Its baseline attack constants feed normal slash.
-- `EnemyMove.java`: move windup/active/recovery, strike count, multiplier, between-strike delay, reach/top/height and `BETWEEN_MOVES`.
-- `CombatConfig.java`: regular block/deflect posture transfers, posture/recovery/break tuning, deathblow range, and anti-spam values.
+Use [CONTENT_EDITING.md](CONTENT_EDITING.md). Levels are in `assets/levels/*.tmj`, entity stats in `assets/entities/*.json`, attack/defense/combo tuning in `assets/combat/`, visual mappings in `assets/animations/`, and AI settings in `assets/behaviors/`. Register new files/levels in `assets/manifest.json`. No Java edits are needed for the supported content types.
 
 ## Solid body collision
 
@@ -128,16 +125,16 @@ This compiles the production simulation directly and checks boundaries, jump/lan
 
 - `Game`: continuous run state, pickups, reset/completion and fixed 1/120-second combat ticks, retaining elapsed time and input edges with bounded catch-up.
 - `Player`: position, velocity, grounded/facing state, health, attack timing and per-strike hit state.
-- `Enemy` / `EnemyMove`: Android-independent IDLE / CHASE / ATTACK_WINDUP / ATTACK_ACTIVE / ATTACK_RECOVERY / POSTURE_BROKEN / DEAD state machine, movement, facing, attack timing and damage.
-- `WorldDefinition` / `AreaDefinition` / `AreaState`: authored 2,880×1,080 geometry, ladder apertures, navigation graph and five persistent enemies. `GameWorld` retains the 960×540 viewport and legacy test-arena constants. Origin is top left; units are logical pixels and seconds.
+- `Enemy` / `AttackRun` / content definitions: Android-independent IDLE / CHASE / ATTACK_WINDUP / ATTACK_ACTIVE / ATTACK_RECOVERY / POSTURE_BROKEN / DEAD state machine, movement, facing, attack timing and damage.
+- `content.Content` / `TiledLoader` / `AreaDefinition` / `AreaState`: validated external geometry, ladder apertures, navigation graph and independent persistent enemies. `WorldDefinition` now reads the same map for historical JVM fixtures. `GameWorld` retains the 960×540 viewport and legacy test-arena constants. Origin is top left; units are logical pixels and seconds.
 - `SolidPhysics` / `WorldNavigator` / `LadderTraffic`: swept floors/ceilings/sides, ladder traversal, surface routing and bounded yielding at occupied exits.
 - `Camera` / `ChunkLayout`: render-only smoothed two-axis follow, world bounds and small scenery cache sections.
 - `CollisionManager`: world/ground resolution and axis-aligned hitbox overlap. Solid body sweeps are independent of attack hitboxes; living actors cannot pass through each other at overlapping heights.
 - `CombatConfig` / `Posture`: configurable, Android-independent posture and recovery/break timers.
 - `Controls`: synchronized held-button masks and queued press edges; shared render/input button bounds.
 - `InputHandler`: Android MotionEvent adapter, aggregating all non-lifted pointers into `Controls`. Button coordinates use the fixed viewport transform, independent of the camera.
-- `SpriteClip` / `AnimationClock` / `CharacterAnimations`: Android-independent asset descriptors, animation playback and read-only visual state selection.
-- `SpritePainter`: explicit cached image loading, pixel-friendly sprite drawing and culled cached world chunks.
+- `content.AnimationDef` / `ContentAnimationClock` / `ContentAnimations`: configured frames, playback/events, authoritative phase sampling and visual state priorities. The former sprite classes remain regression fixtures.
+- `ContentPainter`: configured PNG caching, pixel-friendly drawing and twelve reusable world chunks independent of map extent.
 - `Viewport`: shared uniform landscape scaling.
 - `GameScreen`: drawing, touch-coordinate conversion, Surface lifecycle and a paced rendering thread capped around 60 FPS. Updates precede rendering; simulation and drawing share one thread.
 - `MainActivity`: entry point, safe system-bar insets and lifecycle forwarding.
@@ -150,6 +147,6 @@ This is a compact continuous-world prototype with five enemies and run-local upg
 
 ## Verification in this cloud workspace
 
-Run `./tools/test-core.sh` and `./gradlew assembleDebug lintDebug` for current results. The cloud machine uses `/workspace/toolchains/jdk-21.0.6+7` as `JAVA_HOME`, `/workspace/android-sdk` as `ANDROID_HOME`, and `/workspace/.gradle` as `GRADLE_USER_HOME`. Source `/workspace/setup/lock-in-env.sh` to activate its tooling, writable Android state, proxy and system trust settings. These are local tooling paths, not required project settings.
+Run `./tools/test-core.sh` and `./gradlew validateContent testContent assembleDebug lintDebug` for current results. The cloud machine uses `/workspace/toolchains/jdk-21.0.6+7` as `JAVA_HOME`, `/workspace/android-sdk` as `ANDROID_HOME`, and `/workspace/.gradle` as `GRADLE_USER_HOME`. Source `/workspace/setup/lock-in-env.sh` to activate its tooling, writable Android state, proxy and system trust settings. These are local tooling paths, not required project settings.
 
 No Android device/emulator is connected. On-device gameplay, multitouch, GPU sprite rendering, readability, restart interaction, and lifecycle checks require the manual device checklist above.

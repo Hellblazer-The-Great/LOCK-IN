@@ -14,13 +14,13 @@ public final class Camera {
   }
 
   public void reset(Player p, AreaDefinition world) {
-    x = clamp(p.x + Player.WIDTH / 2 - GameWorld.WIDTH / 2, world.width - GameWorld.WIDTH);
-    y = clamp(p.y + Player.HEIGHT / 2 - GameWorld.HEIGHT / 2, world.height - GameWorld.HEIGHT);
+    x = clamp(p.x + p.width / 2 - GameWorld.WIDTH / 2, world.width - GameWorld.WIDTH);
+    y = clamp(p.y + p.height / 2 - GameWorld.HEIGHT / 2, world.height - GameWorld.HEIGHT);
   }
 
   public void update(Player p, AreaDefinition world, double dt) {
     if (!Double.isFinite(dt) || dt <= 0) return;
-    float cx = p.x + Player.WIDTH / 2, cy = p.y + Player.HEIGHT / 2;
+    float cx = p.x + p.width / 2, cy = p.y + p.height / 2;
     float dx = cx - (x + GameWorld.WIDTH / 2), dy = cy - (y + GameWorld.HEIGHT / 2);
     float tx = x + (dx > DEAD_X ? dx - DEAD_X : dx < -DEAD_X ? dx + DEAD_X : 0);
     float ty = y + (dy > DEAD_Y ? dy - DEAD_Y : dy < -DEAD_Y ? dy + DEAD_Y : 0);

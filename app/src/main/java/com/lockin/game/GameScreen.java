@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import com.lockin.game.content.Content;
 import java.io.IOException;
 
 public final class GameScreen extends SurfaceView implements SurfaceHolder.Callback, Runnable {
@@ -16,18 +17,12 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
   private static final String[] BUTTON_LABELS = {
     "LEFT", "RIGHT", "JUMP", "ATTACK", "GUARD", "DASH", "UP", "DOWN"
   };
-  private final CharacterAnimations animations = new CharacterAnimations();
-  private final CharacterAnimations[] foes = {
-    new CharacterAnimations(),
-    new CharacterAnimations(),
-    new CharacterAnimations(),
-    new CharacterAnimations(),
-    new CharacterAnimations()
-  };
-  private final SpritePainter sprites;
+  private final ContentAnimations animations;
+  private final ContentAnimations[] foes;
+  private final ContentPainter sprites;
   private final String assetError;
   private final Controls.Snapshot controls = new Controls.Snapshot();
-  private final Game game = new Game();
+  private final Game game;
   private final Camera camera = new Camera();
   private long cameraRestart = Long.MIN_VALUE;
   private final InputHandler input = new InputHandler();
@@ -41,15 +36,28 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
   public GameScreen(Context context) {
     super(context);
     logTiming = (context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
-    SpritePainter loaded = null;
+    ContentPainter loaded = null;
+    Game configured = null;
+    Content pack = null;
     String failure = null;
     try {
-      loaded = new SpritePainter(context.getAssets());
-    } catch (IOException error) {
+      pack = Content.load(path -> context.getAssets().open(path));
+      configured = new Game(pack);
+      loaded = new ContentPainter(context.getAssets(), pack);
+    } catch (IOException | IllegalArgumentException error) {
       failure = error.getMessage();
+      Log.e("LOCK-IN-Content", failure, error);
     }
+    game = configured;
+    animations = pack == null ? null : new ContentAnimations(pack);
+    int count = 0;
+    if (pack != null)
+      for (var level : pack.levels.values()) count = Math.max(count, level.enemies.size());
+    foes = new ContentAnimations[count];
+    for (int i = 0; i < count; i++) foes[i] = new ContentAnimations(pack);
     sprites = loaded;
     assetError = failure;
+    if (sprites != null) sprites.setLevel(game.level());
     getHolder().addCallback(this);
     setFocusable(true);
   }
@@ -104,7 +112,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
       if (interrupted) Thread.currentThread().interrupt();
     }
     input.clear();
-    game.player.clearGuard();
+    if (game != null) game.player.clearGuard();
   }
 
   @Override
@@ -116,9 +124,10 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
       float dt = (start - previous) / 1_000_000_000f;
       previous = start;
       long updateStart = System.nanoTime();
-      long beforeSteps = game.simulationSteps();
-      double beforeDrop = game.droppedSeconds();
-      boolean measuring = !game.resetPending() && !game.complete() && !game.player.defeated();
+      long beforeSteps = game == null ? 0 : game.simulationSteps();
+      double beforeDrop = game == null ? 0 : game.droppedSeconds();
+      boolean measuring =
+          game != null && !game.resetPending() && !game.complete() && !game.player.defeated();
       input.consume(controls);
       if (sprites != null) {
         int command = input.consumeCommand();
@@ -132,7 +141,9 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
           input.resetInput();
         }
         if (!game.resetPending()) {
+          sprites.setLevel(game.level());
           game.update(dt, controls);
+          sprites.setLevel(game.level());
           double visualDt =
               game.player.defeated() || game.complete()
                   ? Math.min(dt, Game.MAX_BACKLOG_SECONDS)
@@ -233,10 +244,11 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
   private void debug(Canvas c) {
     Player p = game.player;
     Enemy e = game.enemy;
-    outline(c, p.x, p.y, p.x + Player.WIDTH, p.y + Player.HEIGHT, Color.CYAN);
-    if (!e.defeated()) outline(c, e.x, e.y, e.x + Enemy.WIDTH, e.y + Enemy.HEIGHT, Color.MAGENTA);
+    if (e == null) return;
+    outline(c, p.x, p.y, p.x + p.width, p.y + p.height, Color.CYAN);
+    if (!e.defeated()) outline(c, e.x, e.y, e.x + e.width, e.y + e.height, Color.MAGENTA);
     if (p.attacking())
-      outline(c, p.attackLeft(), p.y + 10, p.attackRight(), p.y + Player.HEIGHT - 8, Color.YELLOW);
+      outline(c, p.attackLeft(), p.y + 10, p.attackRight(), p.y + p.height - 8, Color.YELLOW);
     if (e.state() == Enemy.State.ATTACK_ACTIVE)
       outline(c, e.attackLeft(), e.attackTop(), e.attackRight(), e.attackBottom(), Color.RED);
     text(
@@ -289,14 +301,16 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
     c.clipRect(0, 0, GameWorld.WIDTH, GameWorld.HEIGHT);
     if (sprites == null) {
       rect(c, 0, 0, 960, 540, Color.rgb(20, 27, 41));
-      text(c, "Sprite assets could not be loaded", 24, 200, 26, Color.WHITE);
-      text(
-          c,
-          assetError == null ? "Reinstall the complete APK." : assetError,
-          24,
-          240,
-          16,
-          Color.LTGRAY);
+      text(c, "Content could not be loaded", 24, 200, 26, Color.WHITE);
+      String error = assetError == null ? "Reinstall the complete APK." : assetError;
+      for (int line = 0; line < 8 && line * 95 < error.length(); line++)
+        text(
+            c,
+            error.substring(line * 95, Math.min(error.length(), (line + 1) * 95)),
+            24,
+            240 + line * 24,
+            16,
+            Color.LTGRAY);
       c.restore();
       return;
     }
@@ -306,46 +320,51 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
     c.save();
     c.translate(-camera.x(), -camera.y());
     sprites.worldTerrain(c, camera.x(), camera.y());
-    if (!game.hpCollected())
-      collectible(c, WorldDefinition.HP_X, WorldDefinition.HP_FEET, Color.CYAN);
-    if (!game.powerCollected())
-      collectible(c, WorldDefinition.POWER_X, WorldDefinition.POWER_FEET, Color.YELLOW);
+    for (int i = 0; i < game.level().pickups.size(); i++)
+      if (!game.area().collected[i]) {
+        var item = game.level().pickups.get(i);
+        collectible(
+            c,
+            item.x() + item.width() / 2,
+            item.y() + item.height() + 8,
+            item.kind().equals("health") ? Color.CYAN : Color.YELLOW);
+      }
     paint.setColor(0x55352828);
-    c.drawOval(
-        p.x - 6, p.y + Player.HEIGHT - 5, p.x + Player.WIDTH + 6, p.y + Player.HEIGHT + 4, paint);
+    c.drawOval(p.x - 6, p.y + p.height - 5, p.x + p.width + 6, p.y + p.height + 4, paint);
     for (Enemy foe : game.enemies())
       if (camera.visible(foe.x - 240, foe.y - 240, foe.x + 280, foe.y + 240))
         c.drawOval(
             foe.x - 6,
-            foe.y + Enemy.HEIGHT - 5,
-            foe.x + Enemy.WIDTH + 6,
-            foe.y + Enemy.HEIGHT + 4,
+            foe.y + foe.height - 5,
+            foe.x + foe.width + 6,
+            foe.y + foe.height + 4,
             paint);
     if (p.dashing())
       sprites.character(
           c,
           animations.player,
-          p.x + Player.WIDTH / 2 - p.dashDirection() * 28,
-          p.y + Player.HEIGHT,
+          p.x + p.width / 2 - p.dashDirection() * 28,
+          p.y + p.height,
           p.facingRight,
           65);
     for (int i = 0; i < game.enemies().length; i++) {
       Enemy foe = game.enemies()[i];
-      if (camera.visible(foe.x - 240, foe.y - 240, foe.x + 280, foe.y + 240))
+      if (sprites.visible(
+          camera, foes[i].enemy, foe.x + foe.width / 2, foe.y + foe.height, foe.facingRight))
         sprites.character(
-            c, foes[i].enemy, foe.x + Enemy.WIDTH / 2, foe.y + Enemy.HEIGHT, foe.facingRight, 255);
+            c, foes[i].enemy, foe.x + foe.width / 2, foe.y + foe.height, foe.facingRight, 255);
     }
     sprites.character(
         c,
         animations.player,
-        p.x + Player.WIDTH / 2,
-        p.y + Player.HEIGHT,
+        p.x + p.width / 2,
+        p.y + p.height,
         p.facingRight,
         p.defeated() ? 180 : 255);
     // Combat effects follow characters. They are cues, never damage or collision inputs.
     if (p.guarding()) {
-      float guardX = p.facingRight ? p.x + Player.WIDTH + 3 : p.x - 7;
-      rect(c, guardX, p.y + 3, guardX + 4, p.y + Player.HEIGHT - 3, Color.CYAN);
+      float guardX = p.facingRight ? p.x + p.width + 3 : p.x - 7;
+      rect(c, guardX, p.y + 3, guardX + 4, p.y + p.height - 3, Color.CYAN);
     }
     if (p.impact() != Player.Impact.NONE) {
       int color;
@@ -366,7 +385,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
           color = Color.RED;
           break;
       }
-      rect(c, p.x - 5, p.y - 8, p.x + Player.WIDTH + 5, p.y - 3, color);
+      rect(c, p.x - 5, p.y - 8, p.x + p.width + 5, p.y - 3, color);
       text(
           c,
           p.impact().name(),
@@ -378,7 +397,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
       if (p.impact() == Player.Impact.DEFLECT || p.impact() == Player.Impact.DEATHBLOW) {
         paint.setColor(color);
         paint.setStrokeWidth(3);
-        float cx = p.facingRight ? p.x + Player.WIDTH + 8 : p.x - 8;
+        float cx = p.facingRight ? p.x + p.width + 8 : p.x - 8;
         float cy = p.y + 28;
         c.drawLine(cx - 18, cy - 18, cx - 7, cy - 7, paint);
         c.drawLine(cx + 7, cy + 7, cx + 18, cy + 18, paint);
@@ -388,8 +407,8 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
     }
     for (Enemy foe : game.enemies()) {
       if (!camera.visible(foe.x - 240, foe.y - 240, foe.x + 280, foe.y + 240)) continue;
-      float visualTop =
-          foe.y + Enemy.HEIGHT - SpriteClip.SAMURAI_IDLE.anchorY * SpriteClip.SAMURAI_IDLE.scale;
+      var idleArt = game.content.animations.get(foe.definition.animations.get("idle"));
+      float visualTop = foe.y + foe.height - idleArt.anchorY * idleArt.scale;
       if (foe.state() == Enemy.State.ATTACK_WINDUP) {
         int telegraph =
             foe.move() == EnemyMove.HEAVY_OVERHEAD ? Color.rgb(255, 150, 60) : Color.YELLOW;
@@ -398,13 +417,13 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
                 camera.y() + 78, visualTop - (foe.move() == EnemyMove.HEAVY_OVERHEAD ? 35 : 20));
         float cueX =
             visualTop - camera.y() < 120
-                ? (foe.x - camera.x() > 820 ? foe.x - 56 : foe.x + Enemy.WIDTH + 12)
+                ? (foe.x - camera.x() > 820 ? foe.x - 56 : foe.x + foe.width + 12)
                 : foe.x + 4;
         rect(
             c,
             cueX,
             top,
-            cueX + Enemy.WIDTH - 8,
+            cueX + foe.width - 8,
             top + (foe.move() == EnemyMove.HEAVY_OVERHEAD ? 12 : 5),
             telegraph);
         if (foe.move() == EnemyMove.DOUBLE_SLASH)
@@ -415,41 +434,41 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
       if (foe.posture.broken() && !foe.defeated()) {
         float breakX =
             visualTop - camera.y() < 120
-                ? (foe.x - camera.x() > 820 ? foe.x - 68 : foe.x + Enemy.WIDTH + 12)
+                ? (foe.x - camera.x() > 820 ? foe.x - 68 : foe.x + foe.width + 12)
                 : foe.x - 8;
         float breakY = Math.max(camera.y() + 78, visualTop - 42);
-        rect(c, breakX, breakY, breakX + Enemy.WIDTH + 16, breakY + 17, Color.RED);
+        rect(c, breakX, breakY, breakX + foe.width + 16, breakY + 17, Color.RED);
         text(c, "!", breakX + 23, breakY + 15, 18, Color.WHITE);
         rect(
             c,
             breakX,
             breakY + 20,
-            breakX + (Enemy.WIDTH + 16) * foe.posture.breakFraction(),
+            breakX + (foe.width + 16) * foe.posture.breakFraction(),
             breakY + 24,
             Color.YELLOW);
       }
       if (!foe.defeated()) {
-        rect(c, foe.x, visualTop - 14, foe.x + Enemy.WIDTH, visualTop - 7, Color.DKGRAY);
+        rect(c, foe.x, visualTop - 14, foe.x + foe.width, visualTop - 7, Color.DKGRAY);
         rect(
             c,
             foe.x,
             visualTop - 14,
-            foe.x + Enemy.WIDTH * foe.healthFraction(),
+            foe.x + foe.width * foe.healthFraction(),
             visualTop - 7,
             Color.RED);
       }
       if (!foe.defeated()) {
-        rect(c, foe.x, visualTop - 5, foe.x + Enemy.WIDTH, visualTop - 1, Color.DKGRAY);
+        rect(c, foe.x, visualTop - 5, foe.x + foe.width, visualTop - 1, Color.DKGRAY);
         rect(
             c,
             foe.x,
             visualTop - 5,
-            foe.x + Enemy.WIDTH * foe.posture.fraction(),
+            foe.x + foe.width * foe.posture.fraction(),
             visualTop - 1,
             Color.YELLOW);
       }
       if (DEBUG_VISUALS) {
-        outline(c, foe.x, foe.y, foe.x + Enemy.WIDTH, foe.y + Enemy.HEIGHT, Color.MAGENTA);
+        outline(c, foe.x, foe.y, foe.x + foe.width, foe.y + foe.height, Color.MAGENTA);
         if (foe.state() == Enemy.State.ATTACK_ACTIVE)
           outline(
               c,
@@ -464,7 +483,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
     if (DEBUG_VISUALS) debug(c);
     c.restore();
     rect(c, 12, 10, 275, 135, 0xBB18212B);
-    text(c, "LOCK IN  |  v0.3.2", 24, 34, 24, Color.WHITE);
+    text(c, "LOCK IN  |  CONTENT", 24, 34, 24, Color.WHITE);
     text(c, "PLAYER " + p.health + "/" + p.maxHealth, 24, 64, 18, Color.WHITE);
     rect(c, 24, 74, 224, 86, Color.DKGRAY);
     rect(c, 24, 74, 24 + 200 * p.healthFraction(), 86, Color.CYAN);
@@ -480,10 +499,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
     }
     text(
         c,
-        "HP +50: "
-            + (game.hpCollected() ? "YES" : "--")
-            + "  POWER x2: "
-            + (game.powerCollected() ? "YES" : "--"),
+        "HP BONUS: +" + (p.maxHealth - p.baseMaxHealth) + "  POWER x" + p.attackMultiplier(),
         610,
         59,
         16,

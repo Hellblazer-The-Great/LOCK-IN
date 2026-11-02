@@ -1,3 +1,5 @@
+> Historical design/asset notes. Current authoring and tuning use [CONTENT_EDITING.md](../CONTENT_EDITING.md); Java tuning locations below describe earlier releases.
+
 # v0.3.0 sprite integration
 
 Base: `5f93895` on `main`. Only rendering and read-only presentation accessors were added; combat durations, damage, collision bodies, attack hitboxes, input bounds and fixed-step ordering remain authoritative and unchanged.

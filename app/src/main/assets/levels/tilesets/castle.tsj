@@ -1,0 +1,27 @@
+{
+  "type": "tileset",
+  "version": "1.10",
+  "tiledversion": "1.11.2",
+  "name": "castle",
+  "tilewidth": 16,
+  "tileheight": 16,
+  "tilecount": 192,
+  "columns": 32,
+  "margin": 0,
+  "spacing": 0,
+  "image": "../../sprites/tilesets/Pixel_Platformer_Tileset_Vol3_v1.0/spritesheet.png",
+  "imagewidth": 512,
+  "imageheight": 96,
+  "tiles": [
+    {
+      "id": 0,
+      "properties": [
+        {
+          "name": "solid",
+          "type": "bool",
+          "value": true
+        }
+      ]
+    }
+  ]
+}

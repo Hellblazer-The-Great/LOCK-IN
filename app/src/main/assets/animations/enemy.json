@@ -1,0 +1,278 @@
+{
+  "animations": [
+    {
+      "id": "samurai_idle",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Idle/Idle_1.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "columns": 2,
+      "frames": [
+        0,
+        1,
+        2
+      ],
+      "fps": 8,
+      "loop": true,
+      "facesRight": false,
+      "anchorX": 8,
+      "anchorY": 14,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_run",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Run/Samurai_Run.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "columns": 3,
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "fps": 12,
+      "loop": true,
+      "facesRight": false,
+      "anchorX": 8,
+      "anchorY": 14,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_hurt",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Hit/Samurai_Hit.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "columns": 2,
+      "frames": [
+        0,
+        1
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": false,
+      "anchorX": 8,
+      "anchorY": 16,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_stagger",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Hit/Samurai_Hit.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "columns": 2,
+      "frames": [
+        0
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": false,
+      "anchorX": 8,
+      "anchorY": 16,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_death",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Death/Samurai_Death_1.png",
+      "frameWidth": 32,
+      "frameHeight": 16,
+      "columns": 3,
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "fps": 10,
+      "loop": false,
+      "facesRight": false,
+      "anchorX": 8,
+      "anchorY": 16,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_prepare",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Attack/Attack_1/Samurai_Attack_1.png",
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "columns": 5,
+      "frames": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": false,
+      "anchorX": 21,
+      "anchorY": 32,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_strike",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Attack/Attack_1/Samurai_Attack_1.png",
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "columns": 5,
+      "frames": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": false,
+      "anchorX": 21,
+      "anchorY": 32,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_recover",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Attack/Attack_1/Samurai_Attack_1.png",
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "columns": 5,
+      "frames": [
+        8,
+        9
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": false,
+      "anchorX": 21,
+      "anchorY": 32,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_return_prepare",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Attack/Attack_1/Samurai_Attack_1.png",
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "columns": 5,
+      "frames": [
+        8,
+        9
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 21,
+      "anchorY": 32,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_return_strike",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Attack/Attack_1/Samurai_Attack_1.png",
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "columns": 5,
+      "frames": [
+        10,
+        11,
+        12,
+        13
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 21,
+      "anchorY": 32,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_return_recover",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Attack/Attack_1/Samurai_Attack_1.png",
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "columns": 5,
+      "frames": [
+        14,
+        15,
+        16,
+        17
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": true,
+      "anchorX": 21,
+      "anchorY": 32,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_heavy_prepare",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Attack/Attack_Down/Samurai_Attack_Down.png",
+      "frameWidth": 48,
+      "frameHeight": 32,
+      "columns": 4,
+      "frames": [
+        0,
+        1
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": false,
+      "anchorX": 24,
+      "anchorY": 13,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_heavy_strike",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Attack/Attack_Down/Samurai_Attack_Down.png",
+      "frameWidth": 48,
+      "frameHeight": 32,
+      "columns": 4,
+      "frames": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": false,
+      "anchorX": 24,
+      "anchorY": 13,
+      "scale": 8.2,
+      "events": []
+    },
+    {
+      "id": "samurai_heavy_recover",
+      "asset": "../sprites/Samurai_Bundle/Samurai/Attack/Attack_Down/Samurai_Attack_Down.png",
+      "frameWidth": 48,
+      "frameHeight": 32,
+      "columns": 4,
+      "frames": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "fps": 12,
+      "loop": false,
+      "facesRight": false,
+      "anchorX": 24,
+      "anchorY": 13,
+      "scale": 8.2,
+      "events": []
+    }
+  ]
+}

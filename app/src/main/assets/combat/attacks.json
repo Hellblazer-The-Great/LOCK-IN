@@ -1,0 +1,136 @@
+{
+  "attacks": [
+    {
+      "id": "player_slash",
+      "style": "normal",
+      "damage": 25,
+      "postureDamage": 25,
+      "blockDamage": 25,
+      "deflectDamage": 35,
+      "duration": 0.45,
+      "cooldown": 0.45,
+      "directional": true,
+      "blockable": true,
+      "deflectable": true,
+      "interruptOnHit": false,
+      "hits": [
+        {
+          "id": "slash",
+          "start": 0,
+          "end": 0.16,
+          "forward": 0,
+          "top": 10,
+          "width": 68,
+          "height": 46,
+          "windupAnimation": "ninja_prepare",
+          "activeAnimation": "ninja_strike"
+        }
+      ],
+      "dashCancel": [
+        {
+          "start": 0,
+          "end": 0.45
+        }
+      ],
+      "recoveryAnimation": "ninja_recover"
+    },
+    {
+      "id": "normal_slash",
+      "style": "normal",
+      "damage": 20,
+      "postureDamage": 25,
+      "blockDamage": 25,
+      "deflectDamage": 35,
+      "duration": 1.38,
+      "cooldown": 0,
+      "directional": true,
+      "blockable": true,
+      "deflectable": true,
+      "interruptOnHit": false,
+      "hits": [
+        {
+          "id": "slash",
+          "start": 0.5,
+          "end": 0.68,
+          "forward": 0,
+          "top": 10,
+          "width": 64,
+          "height": 52,
+          "windupAnimation": "samurai_prepare",
+          "activeAnimation": "samurai_strike"
+        }
+      ],
+      "dashCancel": [],
+      "recoveryAnimation": "samurai_recover"
+    },
+    {
+      "id": "double_slash",
+      "style": "double",
+      "damage": 20,
+      "postureDamage": 25,
+      "blockDamage": 25,
+      "deflectDamage": 35,
+      "duration": 1.61,
+      "cooldown": 0,
+      "directional": true,
+      "blockable": true,
+      "deflectable": true,
+      "interruptOnHit": false,
+      "hits": [
+        {
+          "id": "first",
+          "start": 0.4,
+          "end": 0.54,
+          "forward": 0,
+          "top": 10,
+          "width": 54,
+          "height": 52,
+          "windupAnimation": "samurai_prepare",
+          "activeAnimation": "samurai_strike"
+        },
+        {
+          "id": "second",
+          "start": 0.82,
+          "end": 0.96,
+          "forward": 0,
+          "top": 10,
+          "width": 54,
+          "height": 52,
+          "windupAnimation": "samurai_return_prepare",
+          "activeAnimation": "samurai_return_strike"
+        }
+      ],
+      "dashCancel": [],
+      "recoveryAnimation": "samurai_return_recover"
+    },
+    {
+      "id": "heavy_overhead",
+      "style": "heavy",
+      "damage": 40,
+      "postureDamage": 50,
+      "blockDamage": 50,
+      "deflectDamage": 70,
+      "duration": 2.07,
+      "cooldown": 0,
+      "directional": true,
+      "blockable": true,
+      "deflectable": true,
+      "interruptOnHit": false,
+      "hits": [
+        {
+          "id": "overhead",
+          "start": 0.85,
+          "end": 1.07,
+          "forward": 0,
+          "top": -32,
+          "width": 48,
+          "height": 102,
+          "windupAnimation": "samurai_heavy_prepare",
+          "activeAnimation": "samurai_heavy_strike"
+        }
+      ],
+      "dashCancel": [],
+      "recoveryAnimation": "samurai_heavy_recover"
+    }
+  ]
+}

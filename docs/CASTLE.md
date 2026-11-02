@@ -1,3 +1,5 @@
+> Historical design/asset notes. Current authoring and tuning use [CONTENT_EDITING.md](../CONTENT_EDITING.md); Java tuning locations below describe earlier releases.
+
 # v0.3.2 — Continuous Shinobi Castle
 
 VersionName **0.3.2**, versionCode **7**. Native Android Java/Canvas; no new engine, Kotlin, runtime dependency or downloaded artwork.
