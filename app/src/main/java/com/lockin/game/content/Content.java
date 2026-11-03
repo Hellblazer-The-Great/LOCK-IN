@@ -321,7 +321,8 @@ public final class Content {
               "width",
               "height",
               "windupAnimation",
-              "activeAnimation");
+              "activeAnimation",
+              "damage", "postureDamage", "blockDamage", "deflectDamage");
           String hi = h.str("id");
           if (!ids.add(hi)) throw h.error("duplicate hit ID " + hi);
           double start = h.get("start").range(end, duration),
@@ -340,7 +341,11 @@ public final class Content {
                   h.f("width", 1, 2000),
                   h.f("height", 1, 2000),
                   wa,
-                  aa));
+                  aa,
+                  h.has("damage") ? h.get("damage").integer(0, 1000000000) : -1,
+                  h.has("postureDamage") ? h.get("postureDamage").range(0, 1e9) : -1,
+                  h.has("blockDamage") ? h.get("blockDamage").range(0, 1e9) : -1,
+                  h.has("deflectDamage") ? h.get("deflectDamage").range(0, 1e9) : -1));
         }
         if (hits.isEmpty() || hits.size() > 32)
           throw n.error("requires 1..32 ordered non-overlapping hits");

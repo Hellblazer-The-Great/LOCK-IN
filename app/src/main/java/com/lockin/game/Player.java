@@ -62,14 +62,15 @@ public final class Player {
   }
 
   public int healthDamage() {
-    return (int)
-        Math.min(
-            Integer.MAX_VALUE,
-            (long) (definition == null ? DAMAGE : damageAttack().damage) * attackMultiplier);
+    int baseDamage = definition == null ? DAMAGE
+        : attackRun.definition() == null ? damageAttack().damage : attackRun.damage();
+    return (int) Math.min(Integer.MAX_VALUE, (long) baseDamage * attackMultiplier);
   }
 
   public double postureDamage() {
-    return (definition == null ? POSTURE_DAMAGE : damageAttack().postureDamage) * attackMultiplier;
+    double baseDamage = definition == null ? POSTURE_DAMAGE
+        : attackRun.definition() == null ? damageAttack().postureDamage : attackRun.postureDamage();
+    return baseDamage * attackMultiplier;
   }
 
   public int health;

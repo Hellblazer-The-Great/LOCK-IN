@@ -754,6 +754,56 @@ public final class ContentChecks {
     }
   }
 
+  static void perHitTransfers() throws Exception {
+    Content c = edit("combat/attacks.json", "\"id\": \"first\",",
+        "\"id\": \"first\", \"damage\": 7, \"postureDamage\": 9,"
+        + " \"blockDamage\": 11, \"deflectDamage\": 13,");
+    Player p = player(c);
+    Enemy e = enemy(c);
+    place(p, e);
+    e.attackRun.start(c.attacks.get("double_slash"));
+    e.attackRun.advance(.4); e.update(DT, p);
+    near(e.healthDamage(), 7, "first hit health override");
+    e.tryHit(p);
+    near(p.health, 93, "per-hit HP reaches actual defender");
+    near(p.posture.value(), 9, "per-hit posture reaches actual defender");
+    e.tryHit(p);
+    near(p.health, 93, "per-hit contact consumed once");
+    e.attackRun.advance(.42); e.update(DT, p);
+    near(e.healthDamage(), 20, "second hit inherits attack health");
+    e.tryHit(p);
+    near(p.health, 73, "second event commits independently");
+
+    p = player(c); e = enemy(c); place(p, e);
+    e.attackRun.start(c.attacks.get("double_slash")); e.attackRun.advance(.4); e.update(DT, p);
+    p.setGuard(true, true);
+    e.tryHit(p);
+    near(p.health, 100, "deflect still prevents HP damage");
+    near(p.posture.value(), 0, "deflect does not add defender posture");
+    near(e.posture.value(), 13, "per-hit deflect amount goes to attacker");
+
+    p = player(c); e = enemy(c); place(p, e);
+    e.attackRun.start(c.attacks.get("double_slash")); e.attackRun.advance(.4); e.update(DT, p);
+    p.setGuard(true, true); p.updateDefense(.4);
+    e.tryHit(p);
+    near(p.posture.value(), 11, "per-hit block amount goes to defender");
+
+    Content weapon = edit("combat/attacks.json", "\"id\": \"slash\",",
+        "\"id\": \"slash\", \"damage\": 3, \"postureDamage\": 4,");
+    p = player(weapon); e = enemy(weapon); place(p, e);
+    p.powerUpgrade(2);
+    p.update(DT, 0, false, true); p.tryHit(e);
+    near(e.health, 94, "player per-hit damage multiplied once");
+    near(e.posture.value(), 8, "player per-hit posture multiplied once");
+
+    for (String key : new String[]{"damage", "postureDamage", "blockDamage", "deflectDamage"}) {
+      invalid(Map.of("combat/attacks.json", read("combat/attacks.json")
+          .replace("\"id\": \"first\",", "\"id\": \"first\", \"" + key + "\": -1,")), key);
+    }
+    invalid(Map.of("combat/attacks.json", read("combat/attacks.json")
+        .replace("\"id\": \"first\",", "\"id\": \"first\", \"damage\": 1.5,")), "integer");
+  }
+
   public static void main(String[] args) throws Exception {
     base = Content.load(disk);
     parsing();
@@ -764,6 +814,7 @@ public final class ContentChecks {
     levels();
     rates();
     additionalCoverage();
+    perHitTransfers();
     System.out.println(
         "Passed " + checks + " content parsing/editing/runtime/animation/transition checks (A–E)");
   }

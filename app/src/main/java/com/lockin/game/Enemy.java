@@ -124,11 +124,11 @@ public final class Enemy {
   }
 
   public int healthDamage() {
-    return definition == null ? DAMAGE * damageMultiplier() : currentAttack().damage;
+    return definition == null ? DAMAGE * damageMultiplier() : (attackRun.definition() == null ? currentAttack().damage : attackRun.damage());
   }
 
   public double postureDamage() {
-    return definition == null ? POSTURE_DAMAGE * damageMultiplier() : currentAttack().postureDamage;
+    return definition == null ? POSTURE_DAMAGE * damageMultiplier() : (attackRun.definition() == null ? currentAttack().postureDamage : attackRun.postureDamage());
   }
 
   private void resolveMove() {
@@ -366,11 +366,11 @@ public final class Enemy {
   }
 
   public double blockDamage() {
-    return definition == null ? 25 * damageMultiplier() : currentAttack().blockDamage;
+    return definition == null ? 25 * damageMultiplier() : (attackRun.definition() == null ? currentAttack().blockDamage : attackRun.blockDamage());
   }
 
   public double deflectDamage() {
-    return definition == null ? 35 * damageMultiplier() : currentAttack().deflectDamage;
+    return definition == null ? 35 * damageMultiplier() : (attackRun.definition() == null ? currentAttack().deflectDamage : attackRun.deflectDamage());
   }
 
   public boolean canChase() {
