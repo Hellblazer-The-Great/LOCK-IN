@@ -6,8 +6,8 @@ android {
         applicationId 'com.lockin.game'
         minSdk 23
         targetSdk 35
-        versionCode 8
-        versionName '0.3.2'
+        versionCode 9
+        versionName '0.4.2'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

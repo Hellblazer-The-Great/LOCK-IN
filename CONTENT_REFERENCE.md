@@ -1203,3 +1203,80 @@ to proposed actor x before the existing terrain/body sweeps. Art never drives
 motion. Enemy AI has no ordinary movement during an attack, so phase control
 multipliers are player-only, while distance applies to either actor. Equipment
 attack references can select lunge definitions without Java changes.
+
+## v0.4.2 combat mechanics schema and consumers
+
+The following extends the earlier revision's inventory/counts; optional fields
+preserve old JSON. Implementations: `CombatRules`, `CombatState`,
+`Content.Loader.loadAttacks/loadEntity`, `AttackDef` constructors, `Player` and
+`Enemy` damage/reaction/update paths, `Game.update/collectPresentation`, and
+`GameScreen.drawGame`. Original Java constructors retain neutral rules.
+
+| Field | Meaning/unit; actor affected | Accepted values and defaults |
+|---|---|---|
+| entity.staggerResistance | Per-hit incoming posture threshold for reactions, owner | Optional number0..1e9 default0; threshold is inclusive eligibility, not damage reduction |
+| attack.combat | Reactions/windows/owner-on-initiation effects | Optional object; absent neutral |
+| combat.reaction | Per-contact unblocked target reaction | Optional object; absent no reaction |
+| reaction.horizontal | Facing-relative horizontal velocity, target, px/s | Optional -5000..5000 default0; signed forward direction |
+| reaction.vertical | World y velocity impulse, target, px/s | Optional -5000..5000 default0; negative up |
+| reaction.knockbackDuration | Horizontal impulse persistence, seconds | Optional0..5 default.15 when reaction exists; must be positive if horizontal nonzero |
+| reaction.stun | Target action interruption duration, seconds | Optional0..10 default0 |
+| combat.armor | Owner super-armor attack-age windows | Optional ordered array, max32, defaultempty |
+| combat.damageImmunity | Owner HP-only immunity windows | Optional ordered array, max32, defaultempty |
+| combat.staggerImmunity | Owner posture/reaction/interruption immunity windows | Optional ordered array, max32, defaultempty |
+| window.start | Inclusive attack-age beginning, seconds | Required >=previous end (first0 minimum), <=duration |
+| window.end | Exclusive attack-age ending, seconds | Required start+1/120..attack.duration; same numeric tolerance as cancel windows |
+| combat.effects | Owner effects fired once on initiation | Optional array; one entry per supported type; defaultempty |
+| effects[].type | Closed effect discriminator | Required heal/damageMultiplier/postureMultiplier/hitstop/cameraShake |
+| heal.amount | Owner HP restored immediately | Required integer0..1e6; duration forbidden |
+| damageMultiplier.amount | Timed outgoing ordinary HP modifier | Required0..10; applies once alongside power/equipment/boss phase |
+| postureMultiplier.amount | Timed outgoing ordinary posture modifier | Required0..10; block/deflect transfers are not scaled |
+| damageMultiplier/postureMultiplier.duration | Gameplay-clock lifetime | Required1/120..60 seconds |
+| hitstop.duration | Global world/action/animation pause | Required1/120..0.5 seconds; amount forbidden |
+| cameraShake.amount | Render-only world offset amplitude | Required0..30 world px; no input/collision/camera-state mutation |
+| cameraShake.duration | Fixed presentation-clock duration | Required1/120..5 seconds |
+
+All numbers must be finite; unknown keys/types, duplicate effect types, invalid
+windows/ranges fail with file/field paths. Effects are fixed typed data, not an
+expression language. Current attack rules are immutable and shared; CombatState
+belongs to each actor. Fixed scalar fields implement two timed stat slots and a
+reaction slot, so ticks allocate no effect objects. Window/definition lists are
+constructed and frozen only during loading.
+
+Execution order: resolve current owner defenses/windows, apply HP/posture, then
+eligible reaction and interruption. The damage immunity check precedes reaction
+cancellation, so cancelling an immune attack cannot accidentally allow HP loss.
+Unblocked incoming posture at least resistance permits stun/impulses unless armor
+or stagger immunity is active. Posture break/death overrides armor. Armor alone
+never cancels HP/posture damage. HP immunity alone never grants posture/stun
+immunity. Player block/deflect branch retains its timing and defender-profile
+ownership; no enemy defensive branch is introduced. Dash invulnerability keeps
+its old full-contact dodge semantics. Contacts/events still consume once.
+
+Horizontal impulse uses speed*min(dt,remaining) and replaces only on a new
+nonzero horizontal impulse; vertical is applied once then gravity integrates.
+Stun refresh uses maximum remaining duration. Owner stat reapplications replace
+value and take maximum remaining duration; different stat types coexist, and
+item/run/phase modifiers combine multiplicatively without modifying definitions.
+Healing clamps at maximum and does not resurrect. Reactions on block/deflect
+are not applied. Boss transition entry clears stun/impulse; its lock does not
+freeze buff expiry. Level changes preserve the existing actor's timed effects;
+RESET clears actor/global effects.
+
+Hitstop/shake requests are drained after each gameplay tick. Hitstop takes the
+maximum outstanding duration and freezes gameplay plus animation advancement;
+its own countdown and deterministic shake waveform still advance on fixed ticks.
+Shake takes maximum amplitude/duration, drawing only the translated world layer.
+HUD/buttons remain stable. During inventory pause all these clocks are stopped.
+The fixed tick counter includes presentation-only hitstop ticks; lastAdvanceSeconds
+reports only gameplay advancement for animation consumers. Pending input edges
+are retained through hitstop and cleared by the existing inventory/reset paths.
+
+Working examples: `combat/mechanics.json` registers shock_slash and
+shock_enemy_slash. `items/mechanics.json` registers an opt-in shock_blade; no
+starting grant/equip, default map, old boss pool or enemy behavior changes.
+Use initialItems or an item pickup to acquire it, or reference a copied attack
+from a new behavior combo. Existing registered animation assets are reused.
+The lack of projectiles is intentional (optional scope). There is no arbitrary
+status scripting, periodic damage or effect-trigger chaining. Device rendering,
+shake comfort and input feel are unverified by host command instrumentation.
