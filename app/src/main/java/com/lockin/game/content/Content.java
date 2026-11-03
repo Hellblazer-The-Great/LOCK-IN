@@ -13,6 +13,9 @@ public final class Content {
   public final Map<String, AnimationDef> animations;
   public final Map<String, BehaviorDef> behaviors;
   public final Map<String, LevelDef> levels;
+  public final Map<String, ItemDef> items;
+  public final Map<String, Integer> initialItems;
+  public final int accessorySlots, quickSlots;
   public final String startLevel;
 
   private Content(Loader l, String start) {
@@ -23,6 +26,8 @@ public final class Content {
     animations = freeze(l.animations);
     behaviors = freeze(l.behaviors);
     levels = freeze(l.levels);
+    items=freeze(l.items); initialItems=freeze(l.initialItems);
+    accessorySlots=l.accessorySlots; quickSlots=l.quickSlots;
     startLevel = start;
   }
 
@@ -44,6 +49,9 @@ public final class Content {
     final Map<String, BehaviorDef> behaviors = new LinkedHashMap<>();
     final Map<String, LevelDef> levels = new LinkedHashMap<>();
     final Map<String, int[]> images = new HashMap<>();
+    final Map<String,ItemDef> items=new LinkedHashMap<>();
+    final Map<String,Integer> initialItems=new LinkedHashMap<>();
+    int accessorySlots=1, quickSlots=2;
     private long imagePixels;
 
     Loader(ContentSource source) {
@@ -81,6 +89,7 @@ public final class Content {
     Content load() throws IOException {
       Json.Node m = read("manifest.json");
       m.only(
+          "items", "inventory",
           "schemaVersion",
           "startLevel",
           "defenses",
@@ -97,6 +106,19 @@ public final class Content {
       for (String f : files(m, "combos")) loadCombos(f);
       for (String f : files(m, "behaviors")) loadBehaviors(f);
       for (String f : files(m, "entities")) loadEntity(f);
+      if(m.has("items")) for(String f:files(m,"items")) loadItems(f);
+      if(m.has("inventory")) {
+        Json.Node inventory=m.get("inventory");
+        inventory.only("accessorySlots","quickSlots","initialItems");
+        accessorySlots=inventory.has("accessorySlots")?inventory.get("accessorySlots").integer(0,8):1;
+        quickSlots=inventory.has("quickSlots")?inventory.get("quickSlots").integer(0,8):2;
+        if(inventory.has("initialItems")) for(Json.Node grant:inventory.get("initialItems").list()) {
+          grant.only("id","quantity"); String id=grant.str("id");
+          ItemDef item=ref(items,id,grant.path);
+          int quantity=grant.get("quantity").integer(1,item.stackLimit);
+          if(initialItems.put(id,quantity)!=null) throw grant.error("duplicate initial item");
+        }
+      }
       TiledLoader tiled = new TiledLoader(source);
       for (Json.Node v : m.get("levels").list()) {
         v.only("id", "file");
@@ -134,6 +156,10 @@ public final class Content {
           int[] d = image(t.asset());
           if (t.sx() + t.width() > d[0] || t.sy() + t.height() > d[1])
             throw new IllegalArgumentException(l.file + ": tile rectangle exceeds " + t.asset());
+        }
+        for(LevelDef.Pickup pickup:l.pickups) if(pickup.kind().equals("item")) {
+          ItemDef item=ref(items,pickup.itemId(),l.file+".pickup.itemId");
+          if(pickup.amount()>item.stackLimit) throw new IllegalArgumentException(l.file+": pickup exceeds item stackLimit");
         }
         for (LevelDef.Exit e : l.exits)
           if (!e.level().isEmpty()) {
@@ -194,6 +220,26 @@ public final class Content {
         return cached;
       } catch (IOException e) {
         throw new IOException(path + ": missing or invalid image (" + e.getMessage() + ")", e);
+      }
+    }
+
+    void loadItems(String file) throws IOException {
+      Json.Node root=read(file); root.only("items");
+      for(Json.Node n:root.get("items").list()) {
+        String icon=n.str("icon","");
+        if(!icon.isEmpty()) {icon=ContentSource.path(file,icon); image(icon);}
+        Map<String,String> overrides=new LinkedHashMap<>();
+        if(n.has("animations")) {
+          Json.Node states=n.get("animations");
+          states.only("idle","run","jump","fall","guard","deflect","dash","hurt","stagger","death","deathblow");
+          for(String state:states.keys()) {
+            String id=states.str(state); ref(animations,id,states.path+"."+state); overrides.put(state,id);
+          }
+        }
+        ItemDef item=new ItemDef(n,icon,overrides);
+        if(!item.attack.isEmpty()) ref(attacks,item.attack,n.path+".attack");
+        if(!item.combo.isEmpty()) ref(combos,item.combo,n.path+".combo");
+        put(items,item.id,item,n);
       }
     }
 
@@ -321,7 +367,8 @@ public final class Content {
               "width",
               "height",
               "windupAnimation",
-              "activeAnimation");
+              "activeAnimation",
+              "damage", "postureDamage", "blockDamage", "deflectDamage");
           String hi = h.str("id");
           if (!ids.add(hi)) throw h.error("duplicate hit ID " + hi);
           double start = h.get("start").range(end, duration),
@@ -340,7 +387,11 @@ public final class Content {
                   h.f("width", 1, 2000),
                   h.f("height", 1, 2000),
                   wa,
-                  aa));
+                  aa,
+                  h.has("damage") ? h.get("damage").integer(0, 1000000000) : -1,
+                  h.has("postureDamage") ? h.get("postureDamage").range(0, 1e9) : -1,
+                  h.has("blockDamage") ? h.get("blockDamage").range(0, 1e9) : -1,
+                  h.has("deflectDamage") ? h.get("deflectDamage").range(0, 1e9) : -1));
         }
         if (hits.isEmpty() || hits.size() > 32)
           throw n.error("requires 1..32 ordered non-overlapping hits");

@@ -124,6 +124,20 @@ public final class AttackRun {
     return previousAge < at && age + 1e-7 >= at;
   }
 
+  /** Values belong to the current hit, with attack-level fallback for old packs. */
+  public int damage() {
+    return hit().damage() < 0 ? definition.damage : hit().damage();
+  }
+  public double postureDamage() {
+    return hit().postureDamage() < 0 ? definition.postureDamage : hit().postureDamage();
+  }
+  public double blockDamage() {
+    return hit().blockDamage() < 0 ? definition.blockDamage : hit().blockDamage();
+  }
+  public double deflectDamage() {
+    return hit().deflectDamage() < 0 ? definition.deflectDamage : hit().deflectDamage();
+  }
+
   public float left(float x, float width, boolean right) {
     var h = hit();
     boolean forward = !definition.directional || right;

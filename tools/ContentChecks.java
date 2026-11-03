@@ -754,6 +754,142 @@ public final class ContentChecks {
     }
   }
 
+  static void perHitTransfers() throws Exception {
+    Content c = edit("combat/attacks.json", "\"id\": \"first\",",
+        "\"id\": \"first\", \"damage\": 7, \"postureDamage\": 9,"
+        + " \"blockDamage\": 11, \"deflectDamage\": 13,");
+    Player p = player(c);
+    Enemy e = enemy(c);
+    place(p, e);
+    e.attackRun.start(c.attacks.get("double_slash"));
+    e.attackRun.advance(.4); e.update(DT, p);
+    near(e.healthDamage(), 7, "first hit health override");
+    e.tryHit(p);
+    near(p.health, 93, "per-hit HP reaches actual defender");
+    near(p.posture.value(), 9, "per-hit posture reaches actual defender");
+    e.tryHit(p);
+    near(p.health, 93, "per-hit contact consumed once");
+    e.attackRun.advance(.42); e.update(DT, p);
+    near(e.healthDamage(), 20, "second hit inherits attack health");
+    e.tryHit(p);
+    near(p.health, 73, "second event commits independently");
+
+    p = player(c); e = enemy(c); place(p, e);
+    e.attackRun.start(c.attacks.get("double_slash")); e.attackRun.advance(.4); e.update(DT, p);
+    p.setGuard(true, true);
+    e.tryHit(p);
+    near(p.health, 100, "deflect still prevents HP damage");
+    near(p.posture.value(), 0, "deflect does not add defender posture");
+    near(e.posture.value(), 13, "per-hit deflect amount goes to attacker");
+
+    p = player(c); e = enemy(c); place(p, e);
+    e.attackRun.start(c.attacks.get("double_slash")); e.attackRun.advance(.4); e.update(DT, p);
+    p.setGuard(true, true); p.updateDefense(.4);
+    e.tryHit(p);
+    near(p.posture.value(), 11, "per-hit block amount goes to defender");
+
+    Content weapon = edit("combat/attacks.json", "\"id\": \"slash\",",
+        "\"id\": \"slash\", \"damage\": 3, \"postureDamage\": 4,");
+    p = player(weapon); e = enemy(weapon); place(p, e);
+    p.powerUpgrade(2);
+    p.update(DT, 0, false, true); p.tryHit(e);
+    near(e.health, 94, "player per-hit damage multiplied once");
+    near(e.posture.value(), 8, "player per-hit posture multiplied once");
+
+    for (String key : new String[]{"damage", "postureDamage", "blockDamage", "deflectDamage"}) {
+      invalid(Map.of("combat/attacks.json", read("combat/attacks.json")
+          .replace("\"id\": \"first\",", "\"id\": \"first\", \"" + key + "\": -1,")), key);
+    }
+    invalid(Map.of("combat/attacks.json", read("combat/attacks.json")
+        .replace("\"id\": \"first\",", "\"id\": \"first\", \"damage\": 1.5,")), "integer");
+  }
+
+  static void equipment() throws Exception {
+    Player p=player(base); Enemy e=enemy(base); place(p,e);
+    check(p.inventory.count("healing_flask")==3,"JSON starting grants loaded");
+    near(p.healthDamage(),25,"starting items do not force weapon equip");
+    check(p.inventory.equip("long_blade",0),"equip owned weapon");
+    near(p.healthDamage(),30,"weapon modifier once");
+    near(p.postureDamage(),32.5,"weapon posture modifier");
+    check(!p.inventory.equip("long_blade",0),"repeat equip cannot stack");
+    check(p.inventory.equip("posture_charm",0),"equip accessory");
+    near(p.postureDamage(),40.625,"independent modifiers recomputed");
+    check(!p.inventory.equip("posture_charm",1),"one type cannot occupy two slots");
+    p.update(DT,0,false,true);
+    check(p.attackRun.definition().id.equals("long_blade_slash"),"weapon selects actual timeline");
+    check(!p.inventory.unequip("weapon",0),"cannot change gear mid attack");
+    p.update(1,0,false,false);
+    check(p.inventory.unequip("weapon",0),"unequip after attack completes");
+    p.update(DT,0,false,true);
+    check(p.attackRun.definition().id.equals("player_slash"),"unequip restores default attack");
+    p.update(1,0,false,false);
+    near(p.healthDamage(),25,"unequip removes damage multiplier");
+    check(p.inventory.equip("padded_outfit",0),"equip armor");
+    near(p.maxHealth,125,"armor maximum applied"); near(p.health,100,"equip does not heal");
+    p.takeDamage(50); near(p.health,60,"armor modifies incoming HP once");
+    check(p.inventory.unequip("armor",0),"unequip armor"); near(p.maxHealth,100,"maximum recalculated");
+    p.healthUpgrade(50); check(p.inventory.equip("padded_outfit",0),"reequip after health pickup");
+    near(p.maxHealth,175,"health reward and gear bonus independent");
+    check(p.inventory.unequip("armor",0),"unequip bonus after reward"); near(p.maxHealth,150,"reward retained");
+    p.takeDamage(60); p.posture.add(30);
+    check(p.inventory.equip("healing_flask",1),"assign quick slot");
+    check(p.inventory.consume(1),"consume assigned stack");
+    near(p.health,130,"healing effect applied"); near(p.posture.value(),10,"posture effect applied");
+    check(p.inventory.count("healing_flask")==2,"consumption decrements stack");
+    check(p.inventory.acquire("healing_flask",99)==3,"stack limit enforced");
+    check(p.inventory.count("healing_flask")==5,"stack capped");
+    p.reset(); near(p.maxHealth,100,"reset clears gear and reward");
+    check(p.inventory.equipped("weapon",0).isEmpty(),"reset leaves gear unequipped");
+    check(p.inventory.count("healing_flask")==3,"reset restores configured grant");
+    invalid(Map.of("items/foundation.json", read("items/foundation.json")
+        .replace("\"incomingDamageMultiplier\": 0.8","\"incomingDamageMultiplier\": -1")),"incomingDamageMultiplier");
+    invalid(Map.of("items/foundation.json", read("items/foundation.json")
+        .replace("\"attack\": \"long_blade_slash\"","\"attack\": \"missing\"")),"missing");
+    Content old=pack(Map.of("manifest.json",read("manifest.json")
+        .substring(0,read("manifest.json").indexOf(",\n  \"items\""))+"\n}"));
+    check(player(old).inventory.items().isEmpty(),"old manifest without items/inventory remains valid");
+  }
+
+  static void inventoryMenu() throws Exception {
+    Game g=new Game(base); InventoryMenu menu=new InventoryMenu();
+    menu.command(g,4);
+    check(menu.open && g.inventoryPaused(),"menu pauses gameplay engine");
+    long ticks=g.simulationSteps();
+    float x=g.player.x;
+    g.update(.2f,1,true,true);
+    check(g.simulationSteps()==ticks && g.player.x==x,"modal discards movement/actions/time");
+    menu.command(g,101); menu.command(g,7);
+    check(g.player.inventory.equipped("weapon",0).equals("long_blade"),"menu selection equips item");
+    menu.command(g,8);
+    check(g.player.inventory.equipped("weapon",0).isEmpty(),"menu unequips slot");
+    menu.command(g,104); menu.command(g,10); menu.command(g,7);
+    check(g.player.inventory.equipped("consumable",1).equals("healing_flask"),"menu assigns chosen quick slot");
+    g.player.takeDamage(30);menu.command(g,9);
+    check(g.player.health==100 && g.player.inventory.count("healing_flask")==2,"menu uses assigned consumable");
+    menu.command(g,4);g.update(DT,0,false,false);
+    check(!menu.open && !g.inventoryPaused() && !g.player.attacking(),"closing modal has no buffered attack");
+
+    String map=read("levels/test_arena.tmj");
+    map=field(map,"health_reward","\"value\": \"health\"","\"value\": \"item\"");
+    map=field(map,"health_reward","\"value\": 50","\"value\": 2");
+    int start=map.indexOf("\"name\": \"health_reward\"");
+    int props=map.indexOf("\"properties\": [",start)+"\"properties\": [".length();
+    map=map.substring(0,props)+"{\"name\":\"itemId\",\"value\":\"healing_flask\"},"+map.substring(props);
+    g=new Game(pack(Map.of("levels/test_arena.tmj",map)));
+    var pickup=g.level().pickups.get(0);
+    g.player.x=pickup.x();g.player.y=pickup.y();g.update(DT,0,false,false);
+    check(g.player.inventory.count("healing_flask")==5,"item pickup acquired through world contact");
+    g.update(DT,0,false,false);
+    check(g.player.inventory.count("healing_flask")==5,"world pickup once only");
+    invalid(Map.of("levels/test_arena.tmj",map.replace("\"value\":\"healing_flask\"","\"value\":\"missing_item\"")),"missing_item");
+    Content override=edit("items/foundation.json","\"attack\": \"long_blade_slash\"",
+        "\"attack\": \"long_blade_slash\", \"animations\": {\"idle\": \"ninja_guard\"}");
+    Player p=player(override);p.inventory.equip("long_blade",0);
+    check(p.animation("idle").equals("ninja_guard"),"weapon state animation override applied");
+    p.inventory.unequip("weapon",0);
+    check(p.animation("idle").equals("ninja_idle"),"animation override removed on unequip");
+  }
+
   public static void main(String[] args) throws Exception {
     base = Content.load(disk);
     parsing();
@@ -764,6 +900,9 @@ public final class ContentChecks {
     levels();
     rates();
     additionalCoverage();
+    perHitTransfers();
+    equipment();
+    inventoryMenu();
     System.out.println(
         "Passed " + checks + " content parsing/editing/runtime/animation/transition checks (A–E)");
   }

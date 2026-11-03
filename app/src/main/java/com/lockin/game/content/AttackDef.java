@@ -15,7 +15,18 @@ public final class AttackDef {
       float width,
       float height,
       String windupAnimation,
-      String activeAnimation) {}
+      String activeAnimation,
+      int damage,
+      double postureDamage,
+      double blockDamage,
+      double deflectDamage) {
+    /** Original constructor retained for fixtures and existing Java callers. */
+    public Hit(String id, double start, double end, float forward, float top,
+               float width, float height, String windupAnimation, String activeAnimation) {
+      this(id, start, end, forward, top, width, height, windupAnimation, activeAnimation,
+          -1, -1, -1, -1);
+    }
+  }
 
   public record Window(double start, double end) {
     public boolean includes(double t) {

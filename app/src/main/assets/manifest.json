@@ -6,7 +6,9 @@
     "entities/enemy.json"
   ],
   "attacks": [
-    "combat/attacks.json"
+    "combat/attacks.json",
+    "combat/flurry.json",
+    "combat/weapons.json"
   ],
   "combos": [
     "combat/combos.json"
@@ -26,5 +28,34 @@
   ],
   "defenses": [
     "combat/defense.json"
-  ]
+  ],
+  "items": [
+    "items/foundation.json"
+  ],
+  "inventory": {
+    "accessorySlots": 2,
+    "quickSlots": 2,
+    "initialItems": [
+      {
+        "id": "training_blade",
+        "quantity": 1
+      },
+      {
+        "id": "long_blade",
+        "quantity": 1
+      },
+      {
+        "id": "padded_outfit",
+        "quantity": 1
+      },
+      {
+        "id": "posture_charm",
+        "quantity": 1
+      },
+      {
+        "id": "healing_flask",
+        "quantity": 3
+      }
+    ]
+  }
 }

@@ -95,6 +95,14 @@ public final class Game {
               item.y(),
               item.x() + item.width(),
               item.y() + item.height())) {
+            if(item.kind().equals("item")) {
+              var definition=content.items.get(item.itemId());
+              if(player.inventory.count(item.itemId())+item.amount()>definition.stackLimit) continue;
+              player.inventory.acquire(item.itemId(),item.amount());
+              area().collected[i]=true;
+              notice="ACQUIRED: "+definition.name; noticeTime=3;
+              continue;
+            }
             area().collected[i] = true;
             if (item.kind().equals("health")) {
               hpCollected = true;
@@ -203,6 +211,12 @@ public final class Game {
 
   public void confirmReset() {
     if (resetPending) restart();
+  }
+
+  private boolean inventoryPaused;
+  public boolean inventoryPaused(){return inventoryPaused;}
+  public void setInventoryPaused(boolean paused) {
+    inventoryPaused=paused; clearQueued(); player.clearGuard();
   }
 
   private void clearQueued() {
@@ -402,7 +416,7 @@ public final class Game {
       int guardPresses,
       boolean dash) {
     lastAdvanceSeconds = 0;
-    if (resetPending || complete) return;
+    if (resetPending || complete || inventoryPaused) return;
     if ((Float.isNaN(dt) || Float.isInfinite(dt)) || dt <= 0) return;
     if (player.defeated()) {
       if (jump && combatArena) restart();

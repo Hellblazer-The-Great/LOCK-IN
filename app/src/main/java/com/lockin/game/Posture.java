@@ -46,5 +46,9 @@ public final class Posture {
         pressure();
         return true;
     }
+    /** Consumables lower accumulated posture but never cancel an active break or grace. */
+    public void restore(double amount) {
+        if(Double.isFinite(amount) && amount>0 && !broken()) value=Math.max(0,value-amount);
+    }
     public void reset() { value = quietTime = brokenTime = immunityTime = 0; }
 }

@@ -8,7 +8,11 @@ public final class LevelDef {
   public record Spawn(String id, String entity, float x, float feet, boolean right) {}
 
   public record Pickup(
-      String id, String kind, float x, float y, float width, float height, int amount) {}
+      String id, String kind, float x, float y, float width, float height, int amount, String itemId) {
+    public Pickup(String id,String kind,float x,float y,float width,float height,int amount) {
+      this(id,kind,x,y,width,height,amount,"");
+    }
+  }
 
   public record Exit(float x, float y, float width, float height, String level, String spawn) {}
 

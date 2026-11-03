@@ -2,7 +2,7 @@
 
 ## Revision, scope and reading conventions
 
-**Verified against remote `main` at `13411a1`**, fetched 2026-11-02. This includes the JSON/Tiled implementation merged by PR #10 (`2c600f5`). This document replaces the historical pre-refactor audit in full. The Android startup path is `GameScreen` → `Content.load(assets)` → `new Game(content)` → `ContentPainter`; historical constructors and `FixtureContent` exist for regression tests and do not supply Android gameplay defaults.
+**Base reference verified against remote `main` at `13411a1`**, fetched 2026-11-02. This includes the JSON/Tiled implementation merged by PR #10 (`2c600f5`). This document replaces the historical pre-refactor audit in full. The Android startup path is `GameScreen` → `Content.load(assets)` → `new Game(content)` → `ContentPainter`; historical constructors and `FixtureContent` exist for regression tests and do not supply Android gameplay defaults.
 
 All paths in content examples are relative to `app/src/main/assets`, except PNG references inside definitions: those resolve relative to the declaring JSON/TMJ/TSJ file. Units: gameplay seconds (s), world pixels (px), pixels/second, HP, posture units, dimensionless multipliers. Origin is top-left, +x right, +y down. One Tiled pixel equals one world pixel. Sprite source pixels are separate. “Owner” is the actor referencing the entity/profile; “target” is the actor hit. Table restrictions specify types, inclusive numeric ranges, required/optional status, defaults and references. **R** = required, no default; **O** = optional with the stated fallback. Current shipped values are examples, not parser defaults. For nonnumeric fields, increasing has no meaning; changing the selection/reference has the described effect. Increasing a numeric value has the inverse consequence when decreased unless explicitly stated otherwise.
 
@@ -210,7 +210,7 @@ A fresh ATTACK edge attempts deathblow before DASH and again after player moveme
 
 ## 5. `combat/attacks.json`
 
-Root `attacks` is required. Each execution owns its AttackRun age and per-hit consumed flags. Multiple ordered hit events create multi-strikes, independently blockable/dodgeable through the attack's common flags; per-hit damage/flags are not supported. Runtime interval/cancel comparisons use ~1e-7 numeric tolerances around the intended [start, end) bounds.
+Root `attacks` is required. Each execution owns its AttackRun age and per-hit consumed flags. Multiple ordered hit events create multi-strikes, independently blockable/dodgeable through the attack's common flags; per-hit flags are not supported; optional per-hit damage transfers are described in the foundation extension below. Runtime interval/cancel comparisons use ~1e-7 numeric tolerances around the intended [start, end) bounds.
 
 Implementation: [content/Content.java](app/src/main/java/com/lockin/game/content/Content.java) `Loader.loadAttacks`; [content/AttackDef.java](app/src/main/java/com/lockin/game/content/AttackDef.java) canDash; [AttackRun.java](app/src/main/java/com/lockin/game/AttackRun.java) start/advance/phase/strike/canHit/left/progress/event; [Player.java](app/src/main/java/com/lockin/game/Player.java) updateConfiguredAttack/tryHit/receiveAttack; [Enemy.java](app/src/main/java/com/lockin/game/Enemy.java) updateConfigured/tryHit/receiveHit
 
@@ -1007,7 +1007,7 @@ Source links in each field table point to these exact classes; method names iden
 ### Final counts and findings
 
 - **12 content/metadata files inspected:**11 active manifest/definition/map/tileset files plus 1 unregistered atlas metadata JSON. All existing TMJ and TSJ files are included. No knight file or extra entity/animation pack ships in this revision.
-- **240 distinct contextual field paths documented** in the tables, counting containers, optional alternative frame representation, explicitly rejected feature markers and identified unused/editor metadata. Repeated definitions share one schema count; entity state animation keys count individually; Tiled custom-property keys count by owning object/schema context. This count is not the number of key occurrences in the shipped files. The breakdown below makes the total reproducible.
+- **244 distinct contextual field paths documented** in the tables, counting containers, optional alternative frame representation, explicitly rejected feature markers and identified unused/editor metadata. Repeated definitions share one schema count; entity state animation keys count individually; Tiled custom-property keys count by owning object/schema context. This count is not the number of key occurrences in the shipped files. The breakdown below makes the total reproducible.
 - Unused/conditional findings:enemy dash/deathblow/defense-action settings, enemy entity.combo, player behavior, sequence-mode weights/seed, fixed behavior transitions, query-only events, ignored object opacity/metadata, conditional next/FPS behavior, oneWay rejection and unregistered atlas metadata. Full actor ownership and effects are listed in section 12.
 - Data-driven limits:closed action/object/state vocabulary, existing melee AI only, no enemy guard/dash/execution, no event response scripting or hot reload, bounded rectangular Tiled subset, and hardcoded simulation/presentation/navigation policies. No gameplay fixes or new features were implemented.
 
@@ -1017,7 +1017,7 @@ Source links in each field table point to these exact classes; method names iden
 | entity | 25 |
 | entity.animations | 11 |
 | defense | 12 |
-| attack | 27 |
+| attack | 31 |
 | combo | 9 |
 | behavior | 14 |
 | animation | 26 |
@@ -1034,4 +1034,101 @@ Source links in each field table point to these exact classes; method names iden
 | decorationProperty | 3 |
 | tileset | 21 |
 | atlasMetadata | 11 |
-| **Total** | **240** |
+| **Total** | **244** |
+
+
+## v0.4.0 foundation extension: per-hit transfers (implemented)
+
+This branch extends the preceding schema with four optional fields. The
+baseline revision/inventory above describes the pre-extension pack; this branch
+also registers `combat/flurry.json` (one extra attack, no existing moveset/map
+changes). This is not a claim that the overall v0.4.0 release is complete.
+
+| Field in attacks[].hits[] | Meaning | Unit | Affects whom | What happens if increased | Restrictions |
+|---|---|---|---|---|---|
+| `damage` | Current event HP loss | HP | Target | More HP lost | Optional integer0..1e9; omitted inherits attack.damage |
+| `postureDamage` | Current unblocked event posture | posture | Target | Earlier break | Optional number0..1e9; omitted inherits attack.postureDamage |
+| `blockDamage` | Current blocked event posture | posture | Player defender | Earlier player break | Optional number0..1e9; omitted inherits attack.blockDamage; scaled by defender profile |
+| `deflectDamage` | Current deflected event posture | posture | Enemy attacker | Earlier enemy break | Optional number0..1e9; omitted inherits attack.deflectDamage; scaled by player defender profile |
+
+Implementation: `Content.Loader.loadAttacks` validates these values;
+`AttackDef.Hit` holds overrides; `AttackRun.damage/postureDamage/blockDamage/deflectDamage`
+resolves the current strike's fallback. `Player.healthDamage/postureDamage` and
+`Enemy.healthDamage/postureDamage/blockDamage/deflectDamage` consume these
+resolved values. Existing formulas above use these resolved amounts in place
+of the attack-level amounts. Explicit zero is honored; negative JSON values
+are rejected (the internal -1 inheritance sentinel cannot be authored).
+
+The original nine-argument Java Hit constructor remains available for fixtures.
+No per-tick allocations are added. Existing once-per-event consumption and
+player-only guard/deflect behavior remain unchanged. ContentChecks.perHitTransfers
+covers distinct hit values, fallback, HP/posture application, consumption,
+player power once, block/deflect direction, and invalid overrides.
+
+## v0.4.0 implemented inventory/equipment schema
+
+The following extends the baseline reference and field count above. It is an
+implemented milestone, not a declaration that boss/effect release work is done.
+Parser: `Content.Loader.load/loadItems`, `ItemDef` constructor. Runtime:
+`Inventory`, `Player`, `Game.upgrades`, `InventoryMenu`, `InputHandler`,
+`GameScreen.drawInventory`, `ContentPainter.itemIcon`.
+
+| Field | Meaning/unit and direction | Accepted values/defaults |
+|---|---|---|
+| manifest.items | Registry file paths, player-only | Optional string array, absent empty |
+| manifest.inventory | Player run configuration | Optional object, defaults below |
+| inventory.accessorySlots | Accessory slots | Optional integer0..8, default1 |
+| inventory.quickSlots | Consumable assignments | Optional integer0..8, default2 |
+| inventory.initialItems | Starting/reset owned stacks | Optional array, defaultempty |
+| initialItems[].id | Registered item ID | Required existing item, unique in grants |
+| initialItems[].quantity | Owned count | Required integer1..item.stackLimit |
+| items | Registry root collection | Required array |
+| items[].id | Registry identity | Required unique ID, same registry regex |
+| name, description | Inspection text | Required strings |
+| icon | Item PNG, square UI rendering | Optional relative path, defaultempty drawn square; PNG validation/budget applies |
+| category | Slot compatibility | Required weapon/armor/accessory/consumable |
+| stackLimit | Maximum owned count | Required integer1..999 |
+| attack | Weapon default attack ID | Required on weapon, existing attack; other categories cannot override |
+| combo | Weapon buffered followup set | Optional existing combo or empty(default); empty suppresses entity followups while equipped |
+| animations | Weapon state animation overrides | Optional object; same state vocabulary as player entity, all clip IDs resolve |
+| modifiers | Passive equipped modifiers | Optional object; neutral defaults |
+| modifiers.damageMultiplier | Ordinary outgoing player HP multiplier | Optional0..10 default1; larger means more damage dealt |
+| modifiers.postureMultiplier | Ordinary outgoing posture multiplier | Optional0..10 default1; larger means more target posture; no defensive transfer scaling |
+| modifiers.incomingDamageMultiplier | Player HP damage received | Optional0..10 default1; smaller means armor protection; posture unaffected |
+| modifiers.maxHealthBonus | Added player maximum HP | Optional integer0..1e6 default0; no healing on equip |
+| effects | Typed consumable effects | Optional object, but consumable must have positive heal or postureRestore |
+| effects.heal | HP restored to living owner | Optional integer0..1e6 default0; clamps at maximum |
+| effects.postureRestore | Unbroken owner posture removed | Optional0..1e9 default0; does not cancel stagger or alter immunity |
+| pickup.kind=item | World inventory acquisition | New enum value; existing health/power retained |
+| pickup.itemId | Target item registry ID | Required for item pickup; forbidden on health/power; amount<=stackLimit |
+
+Unknown fields, wrong types/ranges, duplicate registry IDs/grants, unresolved
+attacks/combos/animations/icons, incompatible category effects and zero-effect
+consumables fail validation. Icons/animation assets are decoded once; no item
+image decoding occurs in the menu draw loop. Effects are fixed typed data,
+not JSON scripts or event names. Equipment slots cannot be shared by the same
+item type; consumable slots reference an owned stack rather than duplicating it.
+
+`Inventory.recompute` rebuilds aggregate passive modifiers from neutral values.
+HP bonuses sum; multipliers multiply, and damage is rounded once at final integer
+HP application. `Player.healthUpgrade` retains run pickup bonuses separately.
+Equipping never heals; unequipping clamps current HP. Reset restores base HP,
+clears equipment and repopulates configured starting grants. Inventory actions
+reject dead/staggered/dashing/executing/actively attacking owners. Consuming uses
+one unit, clears its assignment on the last unit, and can waste healing at full
+HP. World item pickups are atomic and remain collectible when a stack is full;
+programmatic acquire returns accepted count so callers can handle overflow.
+
+`InventoryMenu` is a simulation-thread model. `InputHandler` queues bounded touch
+commands; `Game.setInventoryPaused` clears queued time/input and guard state and
+prevents updates even if called by an external game loop. Menu close also clears
+queued time/guard. The screen stops animation/camera updates while inspecting.
+Descriptions, equipped ID, selected slot, HP and success/failure feedback are
+shown. Weapon attacks use their own hitbox/timing/phase-animation definitions;
+`ContentAnimations` applies optional weapon state clip overrides. Enemy actors
+never acquire inventories or defensive actions.
+
+Limitations: fixed one main weapon/one armor slot;0..8 accessory/quick slots;
+no disk save, selling, dropping, crafting or arbitrary passive scripts. Device
+visual layout and multitouch delivery remain UNVERIFIED until tested on Android
+hardware; host tests exercise model, pause/input isolation and adapter hit areas.
