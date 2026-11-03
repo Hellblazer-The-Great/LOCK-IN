@@ -431,7 +431,10 @@ public final class Player {
     dashCooldown = Math.max(0, dashCooldown - dt);
     deathblowTime = Math.max(0, deathblowTime - dt);
     attackTime = Math.max(0, attackTime - dt);
-    if (definition != null) updateConfiguredAttack(dt, attack);
+    if (definition != null) {
+      updateConfiguredAttack(dt, attack);
+      x+=(facingRight?1:-1)*attackRun.motionDelta();
+    }
     cooldown = Math.max(0, cooldown - dt);
     if (staggered() || executing) {
       move = 0;
@@ -447,7 +450,7 @@ public final class Player {
       x += move * speed * Math.max(0, dt - burst);
       attack = false;
     } else {
-      float target = move * (grounded ? speed : airSpeed);
+      float target = move * (grounded ? speed : airSpeed) * attackRun.movementMultiplier();
       if (acceleration == 0) velocityX = target;
       else
         velocityX +=
@@ -477,6 +480,7 @@ public final class Player {
         || staggered()
         || dashing()
         || deathblowing()
+        || enemy.encounterInvulnerable
         || enemy.defeated()
         || !enemy.posture.broken()) return false;
     float dx = enemy.x + enemy.width / 2 - (x + width / 2);

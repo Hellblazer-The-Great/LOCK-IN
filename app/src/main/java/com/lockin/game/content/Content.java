@@ -13,6 +13,7 @@ public final class Content {
   public final Map<String, AnimationDef> animations;
   public final Map<String, BehaviorDef> behaviors;
   public final Map<String, LevelDef> levels;
+  public final Map<String, BossDef> bosses;
   public final Map<String, ItemDef> items;
   public final Map<String, Integer> initialItems;
   public final int accessorySlots, quickSlots;
@@ -26,6 +27,7 @@ public final class Content {
     animations = freeze(l.animations);
     behaviors = freeze(l.behaviors);
     levels = freeze(l.levels);
+    bosses=freeze(l.bosses);
     items=freeze(l.items); initialItems=freeze(l.initialItems);
     accessorySlots=l.accessorySlots; quickSlots=l.quickSlots;
     startLevel = start;
@@ -49,6 +51,7 @@ public final class Content {
     final Map<String, BehaviorDef> behaviors = new LinkedHashMap<>();
     final Map<String, LevelDef> levels = new LinkedHashMap<>();
     final Map<String, int[]> images = new HashMap<>();
+    final Map<String,BossDef> bosses=new LinkedHashMap<>();
     final Map<String,ItemDef> items=new LinkedHashMap<>();
     final Map<String,Integer> initialItems=new LinkedHashMap<>();
     int accessorySlots=1, quickSlots=2;
@@ -89,7 +92,7 @@ public final class Content {
     Content load() throws IOException {
       Json.Node m = read("manifest.json");
       m.only(
-          "items", "inventory",
+          "items", "inventory", "bosses",
           "schemaVersion",
           "startLevel",
           "defenses",
@@ -171,6 +174,25 @@ public final class Content {
               throw new IllegalArgumentException(
                   l.file + ": exit references missing spawn " + e.spawn());
           }
+      }
+      if(m.has("bosses")) for(String file:files(m,"bosses")) {
+        Json.Node root=read(file);root.only("bosses");
+        for(Json.Node n:root.get("bosses").list()) {
+          BossDef b=new BossDef(n);LevelDef level=ref(levels,b.level,n.path+".level");
+          boolean found=false;
+          for(var spawn:level.enemies)if(spawn.id().equals(b.spawn))found=true;
+          if(!found)throw n.error("missing boss enemy spawn "+b.spawn);
+          for(var existing:bosses.values())if(existing.level.equals(b.level)&&existing.spawn.equals(b.spawn))
+            throw n.error("enemy spawn already belongs to encounter");
+          if(b.x+b.width>level.area.width || b.y+b.height>level.area.height)throw n.error("trigger outside level");
+          for(var phase:b.phases) {
+            ref(behaviors,phase.behavior(),n.path+".phases.behavior");
+            if(!phase.animation().isEmpty())ref(animations,phase.animation(),n.path+".phases.animation");
+          }
+          for(var reward:b.rewards)if(reward.quantity()>ref(items,reward.item(),n.path+".rewards.item").stackLimit)
+            throw n.error("reward quantity exceeds stackLimit");
+          put(bosses,b.id,b,n);
+        }
       }
       String start = m.str("startLevel");
       ref(levels, start, "manifest.json.startLevel");
@@ -350,7 +372,7 @@ public final class Content {
             "deflectable",
             "interruptOnHit",
             "hits",
-            "dashCancel",
+            "dashCancel", "motion",
             "recoveryAnimation");
         double duration = n.get("duration").range(.008333, 60),
             cooldown = n.get("cooldown").range(0, 60);
@@ -423,7 +445,8 @@ public final class Content {
                 n.bool("interruptOnHit", false),
                 hits,
                 cancel,
-                recovery),
+                recovery,
+                n.has("motion")?AttackDef.Motion.parse(n.get("motion"),duration):AttackDef.Motion.NONE),
             n);
       }
     }

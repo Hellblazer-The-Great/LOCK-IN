@@ -232,3 +232,64 @@ Enemy simulation, posture and action timers stop while the menu is open.
 All inventory/equipment mutations run on the simulation thread. The Android
 input adapter queues commands rather than modifying inventory directly. No
 enemy inventory, guarding or defensive AI is introduced.
+
+## v0.4.1 boss encounter milestone
+
+Optional `manifest.bosses` lists JSON registry files with root `bosses` array.
+See `bosses/trial.json` for a complete two-phase example. It references the named
+`samurai_1` enemy spawn in the separate `boss_demo` level. Set startLevel to
+`boss_demo` to play it, or author a normal exit to that level/start spawn.
+The default castle and its existing spawns/movesets are unchanged.
+
+Copy the encounter under a new unique id. Required fields: id, name (HUD), level,
+spawn, trigger (x/y/width/height in world pixels), phases and rewards. The spawn
+must be an enemy in that level; it can belong to only one encounter. The trigger
+must fit the level. Until player-body overlap, the actor is locked and protected.
+
+Each phase requires healthBelow (0..1, first exactly1, strictly decreasing),
+behavior (existing melee behavior), maxPosture (1..1e9), transitionDuration
+(0..60 seconds). Optional speedMultiplier and damageMultiplier are0..10/default1;
+invulnerable defaultsfalse, animation defaults empty, event defaults empty.
+Speed scales enemy chase/navigation speed. Damage scales outgoing HP/posture/
+block/deflect transfers; player defender profile still controls defensive scaling.
+Transition entry cancels attacks, replaces behavior, resets posture and begins
+an action lock. Optional animation is sampled across the lock. No HP refill or
+maximum-health change occurs: the encounter uses its entity's HP maximum.
+
+After the current transition ends, next phase triggers on health fraction <=
+healthBelow OR its explicit event. Runtime producers call
+`game.signalEncounter(encounterId,eventName)`; this is a fixed event latch, not
+a script. Events for later phases latch until eligible; only the next phase can
+advance, so large health loss cannot skip transition locks. Defeat takes priority
+over phase changes. No generic animation event dispatcher emits encounter events.
+
+Rewards are `{item,quantity}` entries referencing item IDs; quantity must fit that
+item's stackLimit. Each unit is granted once. Full inventory retains outstanding
+units and retries while this level is active; it never discards rewards silently.
+Completion is independent of reward collection. `Game.completedEncounters()`
+exposes stable encounter IDs for future saves; flags and encounter state persist
+across level travel and clear on RESET. Durable storage belongs to v0.5.0.
+
+Single-phase encounters work with a one-element phases array. Ordinary enemies
+need no boss fields. New boss identities/movesets use existing entities, behaviors,
+combos and animations; no boss-specific Java class is required. Arena boundary
+locking, projectiles and additional attack effects are not yet supported here.
+
+### Attack motion (v0.4.1 milestone)
+
+Optional AttackDef `motion` is a closed object with required `start`, `end`
+(seconds in attack duration, end>=start+1/120) and `distance` (-2000..2000 world
+pixels, positive forward). Displacement is distributed evenly over that interval,
+mirrored by current facing and swept through existing terrain/body collision.
+Cancelled attacks stop displacing; blocked movement is not refunded later.
+
+Optional `windupMultiplier`, `activeMultiplier`, `recoveryMultiplier` are0..5,
+default1, scaling player-directed horizontal movement in each attack phase.
+Enemy attack motion uses distance only: enemies already stop ordinary pursuit
+while attacking. These multipliers do not speed up animation, timers or lunges.
+The `lunging_slash` sample advances90px over .2.. .5s and is used in phase2 of the
+opt-in sample boss. Existing enemy movesets and weapons are unchanged.
+
+Knockback, hit stun, armor, attack immunity, timed buffs, hitstop, camera shake,
+projectiles and arena locking are not implemented in this milestone. Do not add
+unsupported effect fields; strict validation rejects them.

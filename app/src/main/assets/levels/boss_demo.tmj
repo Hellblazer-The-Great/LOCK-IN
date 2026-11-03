@@ -1,0 +1,79 @@
+{
+  "type": "map",
+  "orientation": "orthogonal",
+  "width": 60,
+  "height": 34,
+  "tilewidth": 16,
+  "tileheight": 16,
+  "properties": [
+    {
+      "name": "name",
+      "value": "Boss demonstration"
+    },
+    {
+      "name": "playerEntity",
+      "value": "ninja"
+    },
+    {
+      "name": "startSpawn",
+      "value": "start"
+    },
+    {
+      "name": "groundSurface",
+      "value": "ground"
+    }
+  ],
+  "tilesets": [
+    {
+      "firstgid": 1,
+      "source": "tilesets/castle.tsj"
+    }
+  ],
+  "layers": [
+    {
+      "type": "objectgroup",
+      "objects": [
+        {
+          "name": "ground",
+          "type": "platform",
+          "x": 0,
+          "y": 500,
+          "width": 960,
+          "height": 44,
+          "properties": [
+            {
+              "name": "tileId",
+              "value": "castle:7"
+            }
+          ]
+        },
+        {
+          "name": "start",
+          "type": "player_spawn",
+          "point": true,
+          "x": 100,
+          "y": 500,
+          "properties": [
+            {
+              "name": "entityId",
+              "value": "ninja"
+            }
+          ]
+        },
+        {
+          "name": "samurai_1",
+          "type": "enemy_spawn",
+          "point": true,
+          "x": 650,
+          "y": 500,
+          "properties": [
+            {
+              "name": "entityId",
+              "value": "samurai"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

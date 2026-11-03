@@ -39,6 +39,18 @@ public final class Game {
 
   private boolean jumpQueued, attackQueued, dashQueued;
   public final Content content;
+  private BossEncounter[] encounters=new BossEncounter[0];
+  private final java.util.Set<String> completedEncounters=new java.util.LinkedHashSet<>();
+  public java.util.Set<String> completedEncounters(){return java.util.Collections.unmodifiableSet(completedEncounters);}
+  void recordEncounterCompletion(String id){completedEncounters.add(id);}
+  public BossEncounter encounter(String id){for(var b:encounters)if(b.definition.id.equals(id))return b;return null;}
+  public void signalEncounter(String id,String event){
+    BossEncounter b=encounter(id);if(b==null)throw new IllegalArgumentException("Unknown encounter "+id);b.signal(event);
+  }
+  public BossEncounter activeBoss(){for(var b:encounters)if(b.active()&&b.definition.level.equals(level().id))return b;return null;}
+  private void updateEncounters(double dt){
+    if(content!=null)for(var b:encounters)if(b.definition.level.equals(level().id))b.update(this,dt);
+  }
   public final Player player;
 
   /** Compatibility alias for the first enemy in the current area. */
@@ -361,6 +373,10 @@ public final class Game {
     areas = new AreaState[content.levels.size()];
     int i = 0;
     for (var level : content.levels.values()) areas[i++] = new AreaState(level, content);
+    encounters=new BossEncounter[content.bosses.size()];int bi=0;
+    for(var b:content.bosses.values())for(var area:areas)if(area.level.id.equals(b.level))
+      for(int ei=0;ei<area.level.enemies.size();ei++)if(area.level.enemies.get(ei).id().equals(b.spawn))
+        encounters[bi++]=new BossEncounter(b,area.enemies[ei],content);
     loadLevel(start.id, start.startSpawn);
   }
 
@@ -370,6 +386,7 @@ public final class Game {
     lastAdvanceSeconds = droppedSeconds = 0;
     player.reset();
     for (AreaState area : areas) area.reset();
+    completedEncounters.clear();for(var b:encounters)b.reset();
     hpCollected = powerCollected = false;
     noticeTime = 0;
     notice = "";
@@ -441,6 +458,7 @@ public final class Game {
       lastAdvanceSeconds += STEP;
       float step = (float) STEP;
       accumulator = Math.max(0, accumulator - STEP);
+      updateEncounters(step);
       for (Enemy e : enemies()) CollisionManager.resolveBodies(player, e);
       transitionLock = Math.max(0, transitionLock - step);
       float oldPlayerX = player.x, oldPlayerY = player.y;
@@ -463,7 +481,7 @@ public final class Game {
         Enemy e = enemies()[i];
         float oldX = e.x, oldY = e.y;
         boolean navigating =
-            !combatArena && area().navigators[i].update(e, player, area().definition, step);
+            !combatArena && !e.encounterLocked && area().navigators[i].update(e, player, area().definition, step);
         e.update(step, player, navigating);
         if (continuous) SolidPhysics.enemy(e, area().definition, oldX, oldY, step);
         else if (!combatArena)
@@ -476,6 +494,7 @@ public final class Game {
           }
         e.tryHit(player);
       }
+      updateEncounters(0);
       exits(move);
       if (player.defeated()) {
         accumulator = 0;
