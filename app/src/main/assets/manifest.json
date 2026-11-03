@@ -6,7 +6,8 @@
     "entities/enemy.json"
   ],
   "attacks": [
-    "combat/attacks.json"
+    "combat/attacks.json",
+    "combat/flurry.json"
   ],
   "combos": [
     "combat/combos.json"

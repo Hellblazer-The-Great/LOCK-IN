@@ -158,3 +158,24 @@ For all regression and host rendering checks, with a JDK on PATH:
 Supported scope: finite orthogonal maps, JSON array tile data, PNG atlas `.tsj`, rectangular/point objects, grouped layers, layer offsets, H/V flips and the documented properties. Infinite/compressed maps, isometric maps, polygons/slopes/ellipses, rotated/tile/template objects, diagonal tile flips, image layers, animated/collection tiles, tileset offsets and per-layer parallax are rejected with errors. One-way platforms are intentionally unsupported in the solid castle model. Use explicit navigation links for routes beyond ladder connections.
 
 Bounds: map dimensions 960×540 through 32768×32768 world pixels, at most 1024 cells per axis, 262144 cells per tile layer / 1048576 per pack, 128 enemies per level, 32 hit events per attack, and 64 MiB total referenced decoded PNG pixels. The renderer separately reuses a ~12 MiB terrain cache. These checks limit malformed/oversized content; practical phone performance still needs local testing.
+
+
+## v0.4.0 work in progress: per-hit transfers
+
+The combat foundation branch adds optional `damage` (integer 0..1e9),
+`postureDamage`, `blockDamage`, and `deflectDamage` (numbers 0..1e9) to
+individual `attacks[].hits[]` entries. Omission inherits the corresponding
+attack-level value; explicit zero is a real zero, not inheritance. Attack-level
+fields remain required for compatibility. Hit damage/posture receives the
+player's power multiplier exactly once. Block/deflect values instead receive
+the player defender's profile multiplier, just as before.
+
+`combat/flurry.json` registers `samurai_flurry`, an opt-in two-hit attack using
+existing Samurai art. Its first hit has 12 HP / 18 posture, block20 / deflect22;
+its second has 28 HP / 36 posture, block40 / deflect50. To try it, copy a combo
+and behavior under new IDs, place `samurai_flurry` in the combo sequence, and
+reference that behavior from a copied enemy entity. Existing enemies and maps
+are unchanged; registering the move does not change their move pools.
+
+This is an incremental foundation, not the completed v0.4.0 equipment/boss
+release. See `docs/V0_4_0_STATUS.md` for the remaining scope.

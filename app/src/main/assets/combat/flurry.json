@@ -1,0 +1,52 @@
+{
+  "attacks": [
+    {
+      "id": "samurai_flurry",
+      "style": "double",
+      "damage": 20,
+      "postureDamage": 25,
+      "blockDamage": 25,
+      "deflectDamage": 35,
+      "duration": 1.61,
+      "cooldown": 0,
+      "directional": true,
+      "blockable": true,
+      "deflectable": true,
+      "interruptOnHit": false,
+      "hits": [
+        {
+          "id": "first",
+          "start": 0.4,
+          "end": 0.54,
+          "forward": 0,
+          "top": 10,
+          "width": 54,
+          "height": 52,
+          "windupAnimation": "samurai_prepare",
+          "activeAnimation": "samurai_strike",
+          "damage": 12,
+          "postureDamage": 18,
+          "blockDamage": 20,
+          "deflectDamage": 22
+        },
+        {
+          "id": "second",
+          "start": 0.82,
+          "end": 0.96,
+          "forward": 0,
+          "top": 10,
+          "width": 54,
+          "height": 52,
+          "windupAnimation": "samurai_return_prepare",
+          "activeAnimation": "samurai_return_strike",
+          "damage": 28,
+          "postureDamage": 36,
+          "blockDamage": 40,
+          "deflectDamage": 50
+        }
+      ],
+      "dashCancel": [],
+      "recoveryAnimation": "samurai_return_recover"
+    }
+  ]
+}
