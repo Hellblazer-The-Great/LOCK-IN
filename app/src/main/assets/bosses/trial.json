@@ -6,8 +6,8 @@
       "level": "boss_demo",
       "spawn": "samurai_1",
       "trigger": {
-        "x": 400,
-        "y": 760,
+        "x": 300,
+        "y": 320,
         "width": 600,
         "height": 180
       },

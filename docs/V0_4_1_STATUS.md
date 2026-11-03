@@ -31,3 +31,21 @@ Boss milestone verification: all host suites passed, including283 content checks
 and148 content renderer checks. validateContent, testContent, assembleDebug and
 lintDebug passed (zero lint errors, three existing warnings). Device HUD/art not
 verified. Existing inventory/equipment tests remain in the suite.
+
+Attack motion milestone implemented: optional validated motion interval/distance
+with player phase movement multipliers; fixed-step displacement passes through
+terrain/body sweeps. lunging_slash sample used by the sample's second phase.
+Tests cover integrated displacement, real player movement, boundary collision,
+completion and invalid intervals/ranges. Boss demo map simplified to a separate
+small arena rather than a duplicated castle; original maps remain unchanged.
+
+Remaining mandatory combat work is NOT complete: knockback/hit stun, stagger
+resistance, armor/interruption/immunity windows, guard-breaking behavior and typed
+presentation/gameplay effects. Optional projectiles/buffs/arena boundaries are
+not supported. Do not label this branch release-ready.
+
+Final verified checkpoint: validateContent, testContent, assembleDebug and
+lintDebug passed again after attack motion. All host suites pass (289 content
+checks, 148 content-renderer checks, existing equipment/input regressions).
+Lint reports zero errors and three existing warnings. No device benchmark or
+physical-device HUD/touch validation has been performed.

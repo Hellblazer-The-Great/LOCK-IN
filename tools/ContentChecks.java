@@ -896,7 +896,7 @@ public final class ContentChecks {
     check(b!=null && !b.active(),"configured boss awaits rectangle activation");
     int hp=b.actor.health;b.actor.takeDamage(100);
     check(b.actor.health==hp,"inactive boss protected");
-    g.player.x=500;g.player.y=876;g.update(DT,0,false,false);
+    g.player.x=500;g.player.y=g.area().definition.groundY-g.player.height;g.update(DT,0,false,false);
     check(b.active() && g.activeBoss()==b,"activation exposes boss HUD model");
     check(b.transitioning() && b.actor.encounterLocked,"initial transition locks actions");
     b.actor.takeDamage(100);check(b.actor.health==hp,"transition invulnerability applied");
@@ -909,7 +909,7 @@ public final class ContentChecks {
     for(int n=0;n<70;n++)g.update(DT,0,false,false);
     g.player.x=b.actor.x-g.player.width-20;g.player.y=b.actor.y;
     for(int n=0;n<200 && !b.actor.attackRun.running();n++)g.update(DT,0,false,false);
-    check(b.actor.attackId().equals("double_slash"),"phase-specific attack pool selected");
+    check(b.actor.attackId().equals("lunging_slash"),"phase-specific attack pool selected");
     b.actor.takeDamage(100000);g.update(DT,0,false,false);
     check(b.complete() && g.activeBoss()==null,"defeat hides boss HUD");
     check(g.completedEncounters().contains("castle_trial"),"stable completion flag exposed");
@@ -917,7 +917,7 @@ public final class ContentChecks {
     g.update(DT,0,false,false);
     check(g.player.inventory.count("healing_flask")==5,"reward cannot repeat");
     g.restart();check(!b.active() && g.completedEncounters().isEmpty(),"reset clears run encounters/flags");
-    g.loadLevel("boss_demo","start");g.player.x=500;g.player.y=876;
+    g.loadLevel("boss_demo","start");g.player.x=500;g.player.y=g.area().definition.groundY-g.player.height;
     for(int n=0;n<40;n++)g.update(DT,0,false,false);
     g.signalEncounter("castle_trial","enrage");g.update(DT,0,false,false);
     check(b.phase()==1 && b.actor.health==b.actor.maxHealth,"explicit event transitions without health loss");
@@ -925,6 +925,24 @@ public final class ContentChecks {
         .replace("\"behavior\": \"warden_enraged\"","\"behavior\": \"missing\"")),"missing");
     invalid(Map.of("bosses/trial.json",read("bosses/trial.json")
         .replace("\"healthBelow\": 0.5","\"healthBelow\": 1")),"decrease");
+  }
+
+  static void lunges() throws Exception {
+    AttackRun run=new AttackRun();run.start(base.attacks.get("lunging_slash"));
+    double distance=0;
+    for(int i=0;i<200;i++){run.advance(DT);distance+=run.motionDelta();}
+    near(distance,90,"integrated lunge displacement exact");
+    near(run.motionDelta(),0,"completed attack does not repeat movement");
+    Content c=edit("entities/player.json","\"attack\": \"player_slash\"","\"attack\": \"lunging_slash\"");
+    Game g=new Game(c);g.loadLevel("boss_demo","start");
+    g.player.x=300;g.update(DT,0,false,true);
+    for(int i=0;i<200;i++)g.update(DT,0,false,false);
+    near(g.player.x,390,"actual player lunge consumed by physics");
+    g.player.x=900;g.update(DT,0,false,true);
+    for(int i=0;i<200;i++)g.update(DT,0,false,false);
+    near(g.player.x,960-g.player.width,"lunge cannot leave world");
+    invalid(Map.of("combat/lunge.json",read("combat/lunge.json").replace("\"end\": 0.5","\"end\": 0.1")),"end");
+    invalid(Map.of("combat/lunge.json",read("combat/lunge.json").replace("\"distance\": 90","\"distance\": 9000")),"distance");
   }
 
   public static void main(String[] args) throws Exception {
@@ -941,6 +959,7 @@ public final class ContentChecks {
     equipment();
     inventoryMenu();
     bosses();
+    lunges();
     System.out.println(
         "Passed " + checks + " content parsing/editing/runtime/animation/transition checks (A–E)");
   }

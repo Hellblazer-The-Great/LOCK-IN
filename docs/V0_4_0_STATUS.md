@@ -40,3 +40,6 @@ Still required before release acceptance:
 
 No enemy guard, parry, equipment inventory, tactical planner, behavior tree or
 arbitrary JSON scripting is introduced. The unfinished local Knight is not used.
+
+Work after merged PR #13 is tracked separately in V0_4_1_STATUS.md on
+release/v0.4.1; this document retains the earlier milestone history.

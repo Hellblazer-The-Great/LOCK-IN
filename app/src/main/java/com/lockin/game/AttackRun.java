@@ -16,6 +16,16 @@ public final class AttackRun {
   private final boolean[] consumed = new boolean[32];
   private double age, previousAge;
   private boolean running;
+  private float motionDelta;
+  public float motionDelta(){return motionDelta;}
+  public float movementMultiplier(){
+    if(!running)return 1;
+    switch(phase()){
+      case WINDUP:return definition.motion.windup();
+      case ACTIVE:return definition.motion.active();
+      default:return definition.motion.recovery();
+    }
+  }
   private long serial;
 
   public AttackDef definition() {
@@ -35,6 +45,7 @@ public final class AttackRun {
   }
 
   public void start(AttackDef next) {
+    motionDelta=0;
     definition = next;
     age = 0;
     previousAge = -1e-9;
@@ -44,6 +55,7 @@ public final class AttackRun {
   }
 
   public void cancel() {
+    motionDelta=0;
     running = false;
     Arrays.fill(consumed, true);
   }
@@ -56,9 +68,13 @@ public final class AttackRun {
   }
 
   public void advance(double dt) {
+    motionDelta=0;
     if (!running) return;
     previousAge = age;
     age = Math.min(definition.duration, age + dt);
+    var m=definition.motion;
+    double overlap=Math.max(0,Math.min(age,m.end())-Math.max(previousAge,m.start()));
+    motionDelta=(float)(m.distance()*overlap/(m.end()-m.start()));
     if (age + 1e-7 >= definition.duration) running = false;
   }
 

@@ -372,7 +372,7 @@ public final class Content {
             "deflectable",
             "interruptOnHit",
             "hits",
-            "dashCancel",
+            "dashCancel", "motion",
             "recoveryAnimation");
         double duration = n.get("duration").range(.008333, 60),
             cooldown = n.get("cooldown").range(0, 60);
@@ -445,7 +445,8 @@ public final class Content {
                 n.bool("interruptOnHit", false),
                 hits,
                 cancel,
-                recovery),
+                recovery,
+                n.has("motion")?AttackDef.Motion.parse(n.get("motion"),duration):AttackDef.Motion.NONE),
             n);
       }
     }

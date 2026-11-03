@@ -3,7 +3,7 @@
     {
       "id": "warden_pool",
       "sequence": [
-        "double_slash",
+        "lunging_slash",
         "heavy_overhead"
       ],
       "followups": []

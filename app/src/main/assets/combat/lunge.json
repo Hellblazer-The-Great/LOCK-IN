@@ -1,0 +1,41 @@
+{
+  "attacks": [
+    {
+      "id": "lunging_slash",
+      "style": "normal",
+      "damage": 20,
+      "postureDamage": 25,
+      "blockDamage": 25,
+      "deflectDamage": 35,
+      "duration": 1.38,
+      "cooldown": 0,
+      "directional": true,
+      "blockable": true,
+      "deflectable": true,
+      "interruptOnHit": false,
+      "hits": [
+        {
+          "id": "slash",
+          "start": 0.5,
+          "end": 0.68,
+          "forward": 0,
+          "top": 10,
+          "width": 64,
+          "height": 52,
+          "windupAnimation": "samurai_prepare",
+          "activeAnimation": "samurai_strike"
+        }
+      ],
+      "dashCancel": [],
+      "recoveryAnimation": "samurai_recover",
+      "motion": {
+        "start": 0.2,
+        "end": 0.5,
+        "distance": 90,
+        "windupMultiplier": 0.5,
+        "activeMultiplier": 0.5,
+        "recoveryMultiplier": 1
+      }
+    }
+  ]
+}

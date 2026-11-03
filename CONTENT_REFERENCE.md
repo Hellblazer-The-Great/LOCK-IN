@@ -1180,3 +1180,26 @@ is active. No per-tick collections/bitmaps are created; a new Posture instance i
 created only on phase entry. RESET resets all actors, encounters, reward counters
 and completion flags. Exposed completion flags are read-only and run-local;
 no disk-save claim is made. Optional arena boundaries are not implemented.
+
+### v0.4.1 attack motion extension
+
+Parser: AttackDef.Motion.parse and Content.Loader.loadAttacks. Runtime:
+AttackRun.advance/motionDelta/movementMultiplier, Player.update,
+Enemy.updateConfigured, followed by existing SolidPhysics/CollisionManager.
+
+| Field | Units / direction | Constraints/default |
+|---|---|---|
+| motion | Optional attack movement object | Absent: zero displacement, neutral player movement |
+| motion.start | Seconds since initiation | Required0..duration |
+| motion.end | Seconds since initiation | Required start+1/120..duration |
+| motion.distance | World pixels, owner forward | Required -2000..2000; negative retreats |
+| motion.windupMultiplier | Player horizontal control multiplier | Optional0..5 default1 |
+| motion.activeMultiplier | Player horizontal control multiplier | Optional0..5 default1 |
+| motion.recoveryMultiplier | Player horizontal control multiplier | Optional0..5 default1 |
+
+Each tick displacement=distance*overlap(previousAge..age,start..end)/(end-start).
+Cancelled/finished runs produce zero subsequent movement. Forward delta is added
+to proposed actor x before the existing terrain/body sweeps. Art never drives
+motion. Enemy AI has no ordinary movement during an attack, so phase control
+multipliers are player-only, while distance applies to either actor. Equipment
+attack references can select lunge definitions without Java changes.

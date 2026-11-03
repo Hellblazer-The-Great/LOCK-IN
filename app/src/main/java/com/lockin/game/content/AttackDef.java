@@ -34,6 +34,19 @@ public final class AttackDef {
     }
   }
 
+  public record Motion(double start,double end,float distance,float windup,float active,float recovery) {
+    public static final Motion NONE=new Motion(0,1,0,1,1,1);
+    public static Motion parse(Json.Node n,double duration) {
+      n.only("start","end","distance","windupMultiplier","activeMultiplier","recoveryMultiplier");
+      double start=n.get("start").range(0,duration);
+      double end=n.get("end").range(start+1.0/120,duration);
+      return new Motion(start,end,n.f("distance",-2000,2000),
+          n.has("windupMultiplier")?n.f("windupMultiplier",0,5):1,
+          n.has("activeMultiplier")?n.f("activeMultiplier",0,5):1,
+          n.has("recoveryMultiplier")?n.f("recoveryMultiplier",0,5):1);
+    }
+  }
+  public final Motion motion;
   public final String id, style, recoveryAnimation;
   public final int damage;
   public final double postureDamage, blockDamage, deflectDamage, duration, cooldown;
@@ -57,6 +70,27 @@ public final class AttackDef {
       List<Hit> hits,
       List<Window> cancel,
       String recovery) {
+    this(id,style,damage,posture,block,deflect,duration,cooldown,directional,blockable,
+        deflectable,interrupt,hits,cancel,recovery,Motion.NONE);
+  }
+
+  public AttackDef(
+      String id,
+      String style,
+      int damage,
+      double posture,
+      double block,
+      double deflect,
+      double duration,
+      double cooldown,
+      boolean directional,
+      boolean blockable,
+      boolean deflectable,
+      boolean interrupt,
+      List<Hit> hits,
+      List<Window> cancel,
+      String recovery, Motion motion) {
+    this.motion=motion;
     this.id = id;
     this.style = style;
     this.damage = damage;

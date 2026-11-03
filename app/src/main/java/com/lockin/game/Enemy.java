@@ -447,6 +447,7 @@ public final class Enemy {
     }
     if (attackRun.running()) {
       attackRun.advance(dt);
+      x+=(facingRight?1:-1)*attackRun.motionDelta();
       if (!attackRun.running()) {
         resolveConfigured();
         state = State.IDLE;

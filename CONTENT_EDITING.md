@@ -274,3 +274,22 @@ Single-phase encounters work with a one-element phases array. Ordinary enemies
 need no boss fields. New boss identities/movesets use existing entities, behaviors,
 combos and animations; no boss-specific Java class is required. Arena boundary
 locking, projectiles and additional attack effects are not yet supported here.
+
+### Attack motion (v0.4.1 milestone)
+
+Optional AttackDef `motion` is a closed object with required `start`, `end`
+(seconds in attack duration, end>=start+1/120) and `distance` (-2000..2000 world
+pixels, positive forward). Displacement is distributed evenly over that interval,
+mirrored by current facing and swept through existing terrain/body collision.
+Cancelled attacks stop displacing; blocked movement is not refunded later.
+
+Optional `windupMultiplier`, `activeMultiplier`, `recoveryMultiplier` are0..5,
+default1, scaling player-directed horizontal movement in each attack phase.
+Enemy attack motion uses distance only: enemies already stop ordinary pursuit
+while attacking. These multipliers do not speed up animation, timers or lunges.
+The `lunging_slash` sample advances90px over .2.. .5s and is used in phase2 of the
+opt-in sample boss. Existing enemy movesets and weapons are unchanged.
+
+Knockback, hit stun, armor, attack immunity, timed buffs, hitstop, camera shake,
+projectiles and arena locking are not implemented in this milestone. Do not add
+unsupported effect fields; strict validation rejects them.
