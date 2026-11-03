@@ -245,14 +245,15 @@ public final class TiledLoader {
             break;
           }
         case "pickup":
-          properties(p, o, "kind", "amount");
+          properties(p, o, "kind", "amount", "itemId");
           String kind = required(p, "kind", o);
-          if (!kind.equals("health") && !kind.equals("power"))
-            throw o.error("pickup kind must be health or power");
+          if (!kind.equals("health") && !kind.equals("power") && !kind.equals("item"))
+            throw o.error("pickup kind must be health, power or item");
+          if(!kind.equals("item") && p.containsKey("itemId")) throw o.error("itemId requires kind=item");
           int amount = p.containsKey("amount") ? p.get("amount").integer(1, 1000000) : 1;
           if (w <= 0 || h <= 0 || name.isEmpty())
             throw o.error("pickup needs name and positive rectangle");
-          pickups.add(new LevelDef.Pickup(name, kind, x, y, w, h, amount));
+          pickups.add(new LevelDef.Pickup(name, kind, x, y, w, h, amount, prop(p,"itemId","")));
           break;
         case "exit":
           properties(p, o, "levelId", "spawnId");

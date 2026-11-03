@@ -1,0 +1,38 @@
+{
+  "attacks": [
+    {
+      "id": "long_blade_slash",
+      "style": "normal",
+      "damage": 25,
+      "postureDamage": 25,
+      "blockDamage": 25,
+      "deflectDamage": 35,
+      "duration": 0.7,
+      "cooldown": 0.7,
+      "directional": true,
+      "blockable": true,
+      "deflectable": true,
+      "interruptOnHit": false,
+      "hits": [
+        {
+          "id": "slash",
+          "start": 0.15,
+          "end": 0.35,
+          "forward": 0,
+          "top": 10,
+          "width": 100,
+          "height": 46,
+          "windupAnimation": "ninja_prepare",
+          "activeAnimation": "ninja_strike"
+        }
+      ],
+      "dashCancel": [
+        {
+          "start": 0,
+          "end": 0.7
+        }
+      ],
+      "recoveryAnimation": "ninja_recover"
+    }
+  ]
+}

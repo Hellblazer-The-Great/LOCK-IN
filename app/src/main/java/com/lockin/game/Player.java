@@ -4,6 +4,8 @@ import com.lockin.game.content.*;
 
 public final class Player {
   public final EntityDef definition;
+  public final Inventory inventory;
+  private int healthUpgradeBonus;
   private final Content content;
   public final AttackRun attackRun = new AttackRun();
   public final float width, height, speed, gravity, jumpSpeed, climbSpeed, airSpeed, acceleration;
@@ -49,9 +51,22 @@ public final class Player {
   }
 
   public void healthUpgrade(int amount) {
-    maxHealth = (int) Math.min(Integer.MAX_VALUE, (long) maxHealth + amount);
-    health = maxHealth;
+    healthUpgradeBonus=(int)Math.min(Integer.MAX_VALUE,(long)healthUpgradeBonus+Math.max(0,amount));
+    refreshEquipmentHealth(); health=maxHealth;
   }
+  public void refreshEquipmentHealth() {
+    maxHealth=(int)Math.min(Integer.MAX_VALUE,(long)baseMaxHealth+healthUpgradeBonus+inventory.healthBonus());
+    health=Math.min(health,maxHealth);
+  }
+  public void heal(int amount) {
+    if(!defeated() && amount>0) health=(int)Math.min(maxHealth,(long)health+amount);
+  }
+  public boolean canManageEquipment() {
+    return !defeated() && !staggered() && !dashing() && !deathblowing() && !attackRun.running();
+  }
+  public String defaultAttack() {return inventory.attack(definition.attack);}
+  public String comboId() {return inventory.combo(definition.combo);}
+  public String animation(String state) {return inventory.animation(state,definition.animations.get(state));}
 
   public void powerUpgrade() {
     powerUpgrade(2);
@@ -64,13 +79,13 @@ public final class Player {
   public int healthDamage() {
     int baseDamage = definition == null ? DAMAGE
         : attackRun.definition() == null ? damageAttack().damage : attackRun.damage();
-    return (int) Math.min(Integer.MAX_VALUE, (long) baseDamage * attackMultiplier);
+    return (int) Math.min(Integer.MAX_VALUE, Math.round(baseDamage * (double) attackMultiplier * inventory.damageMultiplier()));
   }
 
   public double postureDamage() {
     double baseDamage = definition == null ? POSTURE_DAMAGE
         : attackRun.definition() == null ? damageAttack().postureDamage : attackRun.postureDamage();
-    return baseDamage * attackMultiplier;
+    return baseDamage * attackMultiplier * inventory.postureMultiplier();
   }
 
   public int health;
@@ -132,12 +147,13 @@ public final class Player {
     this.baseMaxHealth = Math.max(0, maxHealth);
     this.maxHealth = baseMaxHealth;
     posture = new Posture(config);
+    inventory=new Inventory(content,this);
     reset();
   }
 
   private AttackDef damageAttack() {
     return attackRun.definition() == null
-        ? content.attacks.get(definition.attack)
+        ? content.attacks.get(defaultAttack())
         : attackRun.definition();
   }
 
@@ -352,6 +368,7 @@ public final class Player {
   }
 
   public void takeDamage(int amount) {
+    amount=(int)Math.min(Integer.MAX_VALUE,Math.round(Math.max(0,amount)*inventory.incomingMultiplier()));
     health = (int) Math.max(0, (long) health - Math.max(0, amount));
     if (defeated()) {
       cancelConfiguredAttack();
@@ -379,7 +396,9 @@ public final class Player {
     configuredCooldown = 0;
     bufferedCombo = null;
     velocityX = 0;
-    maxHealth = baseMaxHealth;
+    healthUpgradeBonus=0;
+    inventory.reset();
+    maxHealth = baseMaxHealth + inventory.healthBonus();
     attackMultiplier = 1;
     climbing = false;
     dropTime = 0;
@@ -473,7 +492,7 @@ public final class Player {
     cancelConfiguredAttack();
     enemy.takeDamage(enemy.health);
     deathblowTime = deathblowDuration;
-    if (definition != null) configuredCooldown = content.attacks.get(definition.attack).cooldown;
+    if (definition != null) configuredCooldown = content.attacks.get(defaultAttack()).cooldown;
     clearGuard();
     guardNeedsFreshPress = true;
     attackTime = 0;
@@ -554,8 +573,8 @@ public final class Player {
       cancelConfiguredAttack();
       return;
     }
-    if (pressed && attackRun.running() && !definition.combo.isEmpty()) {
-      for (var follow : content.combos.get(definition.combo).followups)
+    if (pressed && attackRun.running() && !comboId().isEmpty()) {
+      for (var follow : content.combos.get(comboId()).followups)
         if (follow.from().equals(attackRun.definition().id)
             && attackRun.age() + 1e-7 >= follow.open()
             && attackRun.age() <= follow.close() + 1e-7) {
@@ -569,6 +588,6 @@ public final class Player {
       bufferedCombo = null;
       beginAttack(next);
     } else if (pressed && !attackRun.running() && configuredCooldown <= 1e-7)
-      beginAttack(definition.attack);
+      beginAttack(defaultAttack());
   }
 }

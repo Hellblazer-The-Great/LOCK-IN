@@ -68,7 +68,7 @@ public final class ContentAnimations {
       sync = true;
     } else state = "idle";
     if (!sync) {
-      player.play(p.definition.animations.get(state), state.hashCode());
+      player.play(p.animation(state), state.hashCode());
       if (p.deathblowing()) player.sample(p.deathblowProgress());
       else if ((state.equals("deflect") || state.equals("hurt"))
           && p.impact() != Player.Impact.NONE) player.sample(p.impactProgress());

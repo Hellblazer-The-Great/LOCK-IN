@@ -26,6 +26,7 @@ public final class ContentPainter {
     paint.setDither(false);
     Arrays.fill(column, -1);
     try {
+      for(ItemDef item:content.items.values()) if(!item.icon.isEmpty()) load(assets,item.icon);
       for (AnimationDef a : content.animations.values())
         if (!a.placeholder) for (var f : a.frames) load(assets, f.asset());
       for (LevelDef l : content.levels.values()) {
@@ -203,6 +204,13 @@ public final class ContentPainter {
         feet - a.anchorY * a.scale,
         center + r,
         feet + (f.height() - a.anchorY) * a.scale);
+  }
+
+  public void itemIcon(Canvas c, ItemDef item,float x,float y) {
+    target.set(x,y,x+40,y+40);
+    if(item.icon.isEmpty()) {
+      paint.setColor(0xff7ac6d2); c.drawRect(target.left,target.top,target.right,target.bottom,paint);
+    } else c.drawBitmap(images.get(item.icon),null,target,paint);
   }
 
   public void character(
