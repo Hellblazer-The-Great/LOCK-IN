@@ -1064,3 +1064,71 @@ No per-tick allocations are added. Existing once-per-event consumption and
 player-only guard/deflect behavior remain unchanged. ContentChecks.perHitTransfers
 covers distinct hit values, fallback, HP/posture application, consumption,
 player power once, block/deflect direction, and invalid overrides.
+
+## v0.4.0 implemented inventory/equipment schema
+
+The following extends the baseline reference and field count above. It is an
+implemented milestone, not a declaration that boss/effect release work is done.
+Parser: `Content.Loader.load/loadItems`, `ItemDef` constructor. Runtime:
+`Inventory`, `Player`, `Game.upgrades`, `InventoryMenu`, `InputHandler`,
+`GameScreen.drawInventory`, `ContentPainter.itemIcon`.
+
+| Field | Meaning/unit and direction | Accepted values/defaults |
+|---|---|---|
+| manifest.items | Registry file paths, player-only | Optional string array, absent empty |
+| manifest.inventory | Player run configuration | Optional object, defaults below |
+| inventory.accessorySlots | Accessory slots | Optional integer0..8, default1 |
+| inventory.quickSlots | Consumable assignments | Optional integer0..8, default2 |
+| inventory.initialItems | Starting/reset owned stacks | Optional array, defaultempty |
+| initialItems[].id | Registered item ID | Required existing item, unique in grants |
+| initialItems[].quantity | Owned count | Required integer1..item.stackLimit |
+| items | Registry root collection | Required array |
+| items[].id | Registry identity | Required unique ID, same registry regex |
+| name, description | Inspection text | Required strings |
+| icon | Item PNG, square UI rendering | Optional relative path, defaultempty drawn square; PNG validation/budget applies |
+| category | Slot compatibility | Required weapon/armor/accessory/consumable |
+| stackLimit | Maximum owned count | Required integer1..999 |
+| attack | Weapon default attack ID | Required on weapon, existing attack; other categories cannot override |
+| combo | Weapon buffered followup set | Optional existing combo or empty(default); empty suppresses entity followups while equipped |
+| animations | Weapon state animation overrides | Optional object; same state vocabulary as player entity, all clip IDs resolve |
+| modifiers | Passive equipped modifiers | Optional object; neutral defaults |
+| modifiers.damageMultiplier | Ordinary outgoing player HP multiplier | Optional0..10 default1; larger means more damage dealt |
+| modifiers.postureMultiplier | Ordinary outgoing posture multiplier | Optional0..10 default1; larger means more target posture; no defensive transfer scaling |
+| modifiers.incomingDamageMultiplier | Player HP damage received | Optional0..10 default1; smaller means armor protection; posture unaffected |
+| modifiers.maxHealthBonus | Added player maximum HP | Optional integer0..1e6 default0; no healing on equip |
+| effects | Typed consumable effects | Optional object, but consumable must have positive heal or postureRestore |
+| effects.heal | HP restored to living owner | Optional integer0..1e6 default0; clamps at maximum |
+| effects.postureRestore | Unbroken owner posture removed | Optional0..1e9 default0; does not cancel stagger or alter immunity |
+| pickup.kind=item | World inventory acquisition | New enum value; existing health/power retained |
+| pickup.itemId | Target item registry ID | Required for item pickup; forbidden on health/power; amount<=stackLimit |
+
+Unknown fields, wrong types/ranges, duplicate registry IDs/grants, unresolved
+attacks/combos/animations/icons, incompatible category effects and zero-effect
+consumables fail validation. Icons/animation assets are decoded once; no item
+image decoding occurs in the menu draw loop. Effects are fixed typed data,
+not JSON scripts or event names. Equipment slots cannot be shared by the same
+item type; consumable slots reference an owned stack rather than duplicating it.
+
+`Inventory.recompute` rebuilds aggregate passive modifiers from neutral values.
+HP bonuses sum; multipliers multiply, and damage is rounded once at final integer
+HP application. `Player.healthUpgrade` retains run pickup bonuses separately.
+Equipping never heals; unequipping clamps current HP. Reset restores base HP,
+clears equipment and repopulates configured starting grants. Inventory actions
+reject dead/staggered/dashing/executing/actively attacking owners. Consuming uses
+one unit, clears its assignment on the last unit, and can waste healing at full
+HP. World item pickups are atomic and remain collectible when a stack is full;
+programmatic acquire returns accepted count so callers can handle overflow.
+
+`InventoryMenu` is a simulation-thread model. `InputHandler` queues bounded touch
+commands; `Game.setInventoryPaused` clears queued time/input and guard state and
+prevents updates even if called by an external game loop. Menu close also clears
+queued time/guard. The screen stops animation/camera updates while inspecting.
+Descriptions, equipped ID, selected slot, HP and success/failure feedback are
+shown. Weapon attacks use their own hitbox/timing/phase-animation definitions;
+`ContentAnimations` applies optional weapon state clip overrides. Enemy actors
+never acquire inventories or defensive actions.
+
+Limitations: fixed one main weapon/one armor slot;0..8 accessory/quick slots;
+no disk save, selling, dropping, crafting or arbitrary passive scripts. Device
+visual layout and multitouch delivery remain UNVERIFIED until tested on Android
+hardware; host tests exercise model, pause/input isolation and adapter hit areas.

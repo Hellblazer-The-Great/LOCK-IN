@@ -179,3 +179,56 @@ are unchanged; registering the move does not change their move pools.
 
 This is an incremental foundation, not the completed v0.4.0 equipment/boss
 release. See `docs/V0_4_0_STATUS.md` for the remaining scope.
+
+## v0.4.0 inventory and equipment milestone
+
+`manifest.items` is an optional array of item-registry JSON paths. Each registry
+has `{ "items": [...] }`. An omitted registry preserves old content behavior.
+`manifest.inventory` optionally defines `accessorySlots` (0..8, default1),
+`quickSlots` (0..8, default2), and `initialItems` entries `{id,quantity}`. Main
+weapon and armor each have one slot. Starting grants are owned, never equipped
+automatically. RESET restores grants and clears equipment; there is no disk save.
+
+The bundled `items/foundation.json` grants a training blade, long blade, padded
+outfit, posture charm and three healing flasks. This changes available inventory,
+not the player's initial combat stats. Existing maps and enemies are unchanged.
+
+Each item has required `id`, `name`, `description`, `category` and `stackLimit`
+(integer1..999). Categories are `weapon`, `armor`, `accessory`, `consumable`, and
+also determine slot compatibility. `icon` is an optional PNG path relative to
+its registry file; empty/omitted uses a drawn square. Weapons require `attack`
+and optionally `combo` (empty means no followups). Optional `animations` maps
+existing player state names to registered clips. Attack phase visuals/reach/
+timing come from the referenced attack, not from inventory UI code.
+
+Equipment `modifiers` accepts only `damageMultiplier`, `postureMultiplier`,
+`incomingDamageMultiplier` (each0..10, default1), `maxHealthBonus` (integer0..1e6,
+default0). These are passive equipped effects: multipliers multiply across
+slots, HP bonuses sum. Recalculation starts from base values on every change;
+repeat equip cannot stack. HP increases do not heal; removing gear clamps HP.
+Run health/power pickups remain independent. Player damage/posture is modified
+once; armor scales incoming HP damage, not posture or deflect transfers.
+
+Consumable `effects` accepts `heal` (integer0..1e6) and `postureRestore`
+(number0..1e9), default0. At least one must be positive; consumables cannot
+carry equipped modifiers. Use consumes one item even at full HP/posture.
+Posture restoration cannot cancel an active break. Gear cannot declare use
+effects. Weapons alone can declare attack/combo/animation overrides.
+
+For an item pickup, create an ordinary named pickup rectangle with `kind=item`,
+`itemId=<registered ID>`, and `amount` (positive integer, <=stackLimit). A full
+stack leaves the pickup in the world; contact is all-or-nothing. Old health/
+power pickups retain their behavior. Runtime rewards may also call
+`player.inventory.acquire(id,quantity)`, which returns the quantity accepted.
+
+Touch **ITEMS** to open the paused menu. Select a row to inspect its description,
+choose **SLOT +**, then **EQUIP** (also assigns consumables) or **UNEQUIP**.
+**USE SLOT** consumes the selected consumable slot; **USE Q1** outside the menu
+uses quick slot1. PREV/NEXT paginate five items. CLOSE resumes with inputs and
+queued simulation time cleared. Opening during an attack permits inspection,
+but equipment/use is rejected until the action finishes after resuming.
+Enemy simulation, posture and action timers stop while the menu is open.
+
+All inventory/equipment mutations run on the simulation thread. The Android
+input adapter queues commands rather than modifying inventory directly. No
+enemy inventory, guarding or defensive AI is introduced.

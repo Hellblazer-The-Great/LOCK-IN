@@ -81,6 +81,10 @@ public final class InputChecks {
         input.clear();input.onTouch(new MotionEvent(MotionEvent.ACTION_DOWN,0,new float[]{480},new float[]{30}),1,0,0);
         input.clear();check(input.modal()&&input.consumeCommand()==1,"lifecycle pause cannot strand an unconsumed reset modal");
 
+        input.clear();
+        check(InputHandler.inventoryAt(30,90)==100,"inventory list row hit target");
+        check(InputHandler.inventoryAt(450,490)==7,"inventory equip hit target");
+        check(InputHandler.inventoryAt(850,30)==4,"inventory close hit target");
         System.out.println("Passed " + checks + " touch adapter checks");
     }
 }

@@ -26,6 +26,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
   private final Camera camera = new Camera();
   private long cameraRestart = Long.MIN_VALUE;
   private final InputHandler input = new InputHandler();
+  private final InventoryMenu inventoryMenu=new InventoryMenu();
   private final FrameStats frameStats = new FrameStats();
   private final boolean logTiming;
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -131,7 +132,11 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
       input.consume(controls);
       if (sprites != null) {
         int command = input.consumeCommand();
-        if (command == 1) game.requestReset();
+        if(command==4 || inventoryMenu.open) {
+          inventoryMenu.command(game,command);
+          input.resetInput();
+        } else if(command==11) game.player.inventory.consume(0);
+        else if (command == 1) game.requestReset();
         else if (command == 2) {
           game.requestReset();
           game.confirmReset();
@@ -140,7 +145,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
           game.cancelReset();
           input.resetInput();
         }
-        if (!game.resetPending()) {
+        if (!game.resetPending() && !inventoryMenu.open) {
           sprites.setLevel(game.level());
           game.update(dt, controls);
           sprites.setLevel(game.level());
@@ -519,6 +524,8 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
     rect(c, 420, 10, 540, 58, 0xFF773D35);
     outline(c, 420, 10, 540, 58, Color.WHITE);
     text(c, "RESET", 438, 41, 22, Color.WHITE);
+    rect(c,550,10,670,58,0xff356480);text(c,"ITEMS",562,41,22,Color.WHITE);
+    rect(c,680,10,790,58,0xff356480);text(c,"USE Q1",688,41,20,Color.WHITE);
     for (int i = 0; i < Controls.COUNT; i++) {
       int left = Controls.left(i);
       rect(
@@ -542,6 +549,44 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
       text(c, "CONFIRM", 310, 299, 22, Color.WHITE);
       text(c, "CANCEL", 545, 299, 22, Color.WHITE);
     }
+    if(inventoryMenu.open) drawInventory(c);
     c.restore();
   }
+  private void drawInventory(Canvas c) {
+    rect(c,0,0,960,540,0xff182733);
+    text(c,"INVENTORY - PAUSED",20,42,26,Color.WHITE);
+    rect(c,800,10,940,58,0xff773d35); text(c,"CLOSE",825,42,22,Color.WHITE);
+    var ids=inventoryMenu.ids(game.player.inventory);
+    for(int row=0;row<5;row++) {
+      int index=inventoryMenu.page*5+row; if(index>=ids.size()) break;
+      var item=game.content.items.get(ids.get(index)); float y=80+row*60;
+      rect(c,20,y,380,y+54,index==inventoryMenu.selected?0xff356480:0xff243b50);
+      sprites.itemIcon(c,item,26,y+7);
+      text(c,item.name+" x"+game.player.inventory.count(item.id),75,y+34,18,Color.WHITE);
+    }
+    var item=inventoryMenu.selected(game);
+    if(item!=null) {
+      text(c,item.name,410,100,24,Color.WHITE);
+      text(c,item.category+" | Slot "+(inventoryMenu.slot+1),410,133,20,Color.CYAN);
+      String desc=item.description;
+      for(int row=0;row<5 && !desc.isEmpty();row++) {
+        int end=Math.min(48,desc.length());
+        if(end<desc.length()) {int space=desc.lastIndexOf(' ',end);if(space>0)end=space;}
+        text(c,desc.substring(0,end),410,171+row*25,18,Color.WHITE);
+        desc=desc.substring(end).trim();
+      }
+      int count=game.player.inventory.slots(item.category);
+      String equipped=count==0?"No slots":game.player.inventory.equipped(item.category,Math.min(inventoryMenu.slot,count-1));
+      text(c,"Equipped: "+(equipped.isEmpty()?"empty":equipped),410,325,18,Color.YELLOW);
+      text(c,"HP "+game.player.health+" / "+game.player.maxHealth,410,355,20,Color.WHITE);
+    }
+    text(c,inventoryMenu.message,20,418,16,Color.YELLOW);
+    int[] left={20,130,250,410,580,750},right={120,230,390,560,730,940};
+    String[] labels={"PREV","NEXT","SLOT +","EQUIP","UNEQUIP","USE SLOT"};
+    for(int i=0;i<left.length;i++) {
+      rect(c,left[i],450,right[i],520,0xff356480);
+      text(c,labels[i],left[i]+8,493,18,Color.WHITE);
+    }
+  }
+
 }
