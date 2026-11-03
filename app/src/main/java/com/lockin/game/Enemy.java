@@ -6,12 +6,25 @@ import com.lockin.game.content.*;
 public final class Enemy {
   public final EntityDef definition;
   private final Content content;
-  private final BehaviorDef behavior;
+  private BehaviorDef behavior;
   public final AttackRun attackRun = new AttackRun();
-  public final float width, height, speed, gravity, jumpSpeed, climbSpeed, airSpeed, acceleration;
+  public final float width, height, gravity, jumpSpeed, climbSpeed, airSpeed, acceleration;
+  public float speed;
+  public boolean encounterLocked, encounterInvulnerable;
+  private double phaseDamage=1;
   private float configuredCooldown, configuredRecovery, velocityX;
   private long randomState;
   private boolean configuredMove;
+
+  public void configurePhase(BehaviorDef next,float speedMultiplier,double damageMultiplier,double capacity) {
+    behavior=next;speed=definition.speed*speedMultiplier;phaseDamage=damageMultiplier;
+    detectionRadius=next.detection;attackRun.cancel();configuredMove=false;nextMove=0;
+    configuredCooldown=configuredRecovery=velocityX=betweenMoves=0;
+    state=State.IDLE;climbing=false;
+    CombatConfig c=definition.combat;
+    posture=new Posture(new CombatConfig(c.deflectWindow,capacity,c.postureRecovery,0,0,c.recoveryDelay,
+        c.brokenDuration,c.spamStep,c.minimumDeflectWindow,c.spamRecovery,c.breakImmunity,c.deathblowRange));
+  }
 
   public String attackId() {
     return attackRun.definition() == null
@@ -55,7 +68,7 @@ public final class Enemy {
   public static final int DEFAULT_MAX_HEALTH = 100;
   public final int maxHealth;
   public int health;
-  public final Posture posture;
+  public Posture posture;
   public boolean facingRight;
   private State state = State.IDLE;
   private float stateTime, phaseDuration;
@@ -124,11 +137,11 @@ public final class Enemy {
   }
 
   public int healthDamage() {
-    return definition == null ? DAMAGE * damageMultiplier() : (attackRun.definition() == null ? currentAttack().damage : attackRun.damage());
+    return definition == null ? DAMAGE * damageMultiplier() : (int)Math.min(Integer.MAX_VALUE,Math.round(phaseDamage*(attackRun.definition() == null ? currentAttack().damage : attackRun.damage())));
   }
 
   public double postureDamage() {
-    return definition == null ? POSTURE_DAMAGE * damageMultiplier() : (attackRun.definition() == null ? currentAttack().postureDamage : attackRun.postureDamage());
+    return definition == null ? POSTURE_DAMAGE * damageMultiplier() : phaseDamage*(attackRun.definition() == null ? currentAttack().postureDamage : attackRun.postureDamage());
   }
 
   private void resolveMove() {
@@ -150,7 +163,7 @@ public final class Enemy {
   }
 
   public void receiveHit(int healthDamage, double postureDamage) {
-    if (defeated()) return;
+    if (defeated() || encounterInvulnerable) return;
     // Both components belong to this living contact, including a lethal health hit.
     posture.add(postureDamage);
     takeDamage(healthDamage);
@@ -167,7 +180,7 @@ public final class Enemy {
   }
 
   public void deflected(double amount) {
-    if (defeated()) return;
+    if (defeated() || encounterInvulnerable) return;
     posture.add(amount);
     if (posture.broken()) breakPosture();
   }
@@ -177,6 +190,8 @@ public final class Enemy {
   }
 
   public void reset() {
+    encounterLocked=encounterInvulnerable=false;phaseDamage=1;
+    if(definition!=null) {speed=definition.speed;behavior=content.behaviors.get(definition.behavior);posture=new Posture(definition.combat);}
     attackRun.reset();
     configuredMove = false;
     configuredCooldown = configuredRecovery = velocityX = 0;
@@ -202,6 +217,7 @@ public final class Enemy {
   }
 
   public void takeDamage(int amount) {
+    if(encounterInvulnerable)return;
     if (amount > 0) posture.pressure();
     health = (int) Math.max(0, (long) health - Math.max(0, amount));
     if (defeated()) {
@@ -235,7 +251,7 @@ public final class Enemy {
   }
 
   public void update(float dt, Player player, boolean navigating) {
-    if (!Float.isFinite(dt) || dt <= 0 || player.defeated()) return;
+    if (!Float.isFinite(dt) || dt <= 0 || player.defeated() || encounterLocked) return;
     if (definition != null) {
       updateConfigured(dt, player, navigating);
       return;
@@ -334,6 +350,7 @@ public final class Enemy {
   public void tryHit(Player player) {
     if (state() == State.ATTACK_ACTIVE
         && !defeated()
+        && !encounterLocked
         && !player.defeated()
         && (definition == null ? !hitThisAttack : attackRun.canHit())
         && CollisionManager.overlaps(
@@ -366,15 +383,15 @@ public final class Enemy {
   }
 
   public double blockDamage() {
-    return definition == null ? 25 * damageMultiplier() : (attackRun.definition() == null ? currentAttack().blockDamage : attackRun.blockDamage());
+    return definition == null ? 25 * damageMultiplier() : phaseDamage*(attackRun.definition() == null ? currentAttack().blockDamage : attackRun.blockDamage());
   }
 
   public double deflectDamage() {
-    return definition == null ? 35 * damageMultiplier() : (attackRun.definition() == null ? currentAttack().deflectDamage : attackRun.deflectDamage());
+    return definition == null ? 35 * damageMultiplier() : phaseDamage*(attackRun.definition() == null ? currentAttack().deflectDamage : attackRun.deflectDamage());
   }
 
   public boolean canChase() {
-    return behavior == null || behavior.chase;
+    return !encounterLocked && (behavior == null || behavior.chase);
   }
 
   public String nextAttackId() {

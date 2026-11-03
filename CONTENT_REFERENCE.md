@@ -1132,3 +1132,51 @@ Limitations: fixed one main weapon/one armor slot;0..8 accessory/quick slots;
 no disk save, selling, dropping, crafting or arbitrary passive scripts. Device
 visual layout and multitouch delivery remain UNVERIFIED until tested on Android
 hardware; host tests exercise model, pause/input isolation and adapter hit areas.
+
+## v0.4.1 encounter registry extension (boss milestone)
+
+Parser/validation: `BossDef` and `Content.Loader.load`. Runtime: `BossEncounter`,
+`Game.updateEncounters/signalEncounter/completedEncounters`,
+`Enemy.configurePhase`, `ContentAnimations.updateEnemy`, `GameScreen.drawGame`.
+All existing JSON remains valid when manifest.bosses is absent.
+
+| Field | Meaning / units / direction | Restrictions and defaults |
+|---|---|---|
+| manifest.bosses | Encounter registry paths | Optional string array; absent empty |
+| bosses | Root encounter collection | Required array |
+| id | Stable encounter/completion flag ID | Required unique registry ID |
+| name | Boss HUD label | Required string |
+| level | Encounter level ID | Required registered level |
+| spawn | Named enemy actor | Required existing enemy_spawn; unique ownership per level |
+| trigger.x, trigger.y | Activation rectangle origin, world px | Required0..32768 |
+| trigger.width, trigger.height | Activation span, world px | Required1..32768; full rectangle inside level |
+| phases | Ordered reusable phase definitions | Required1..16 entries |
+| phases[].healthBelow | HP fraction eligibility, owner | Required0..1; first1; strictly decreasing |
+| phases[].event | Alternate explicit event condition | Optional empty string; nonempty query uses Game.signalEncounter |
+| phases[].behavior | Phase moveset/AI settings | Required existing melee behavior |
+| phases[].speedMultiplier | Owner ground/nav speed multiplier | Optional0..10 default1; larger means faster |
+| phases[].damageMultiplier | Outgoing HP/posture/block/deflect multiplier | Optional0..10 default1; larger magnifies transfers, not HP/posture resistance |
+| phases[].maxPosture | Owner break capacity | Required1..1e9; posture resets on entry |
+| phases[].transitionDuration | Action lock, seconds | Required0..60; zero skips lock |
+| phases[].invulnerable | Prevent damage/posture/deathblow during lock | Optionalfalse; applies only while transition timer positive |
+| phases[].animation | Transition clip | Optionalempty, otherwise registered clip; sampled, not animation-driven combat |
+| rewards | One-time item unit grants | Required array, max16; unique item IDs |
+| rewards[].item | Reward item registry ID | Required existing item |
+| rewards[].quantity | Units granted | Required integer1..999 and <=stackLimit |
+
+Before activation the boss remains a physical enemy body but cannot attack or
+receive damage. Gravity/terrain collision remain active. Phases change chase/
+nav speed, AI pool, outgoing transfers and posture capacity; they do not change
+body size, maximum HP or refill HP. Transition resets posture and cancels the
+current move. No enemy block/deflect action is added. Explicit event latches can
+advance a phase without HP loss. A zero health threshold cannot naturally fire
+before defeat, so use an explicit event for that configuration.
+
+Transitions and phase checks run on fixed ticks; a post-contact pass detects
+defeat/threshold changes in the same tick without advancing timers twice.
+Defeat sets the stable completion flag, hides active HUD and grants each reward
+unit once. Overflow stays pending until capacity is available while the level
+is active. No per-tick collections/bitmaps are created; a new Posture instance is
+created only on phase entry. RESET resets all actors, encounters, reward counters
+and completion flags. Exposed completion flags are read-only and run-local;
+no disk-save claim is made. Optional arena boundaries are not implemented.

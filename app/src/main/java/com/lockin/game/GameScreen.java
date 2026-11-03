@@ -549,6 +549,13 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
       text(c, "CONFIRM", 310, 299, 22, Color.WHITE);
       text(c, "CANCEL", 545, 299, 22, Color.WHITE);
     }
+    var boss=game.activeBoss();
+    if(boss!=null) {
+      rect(c,260,110,700,160,0xdd182733);
+      text(c,boss.definition.name+" - Phase "+(boss.phase()+1),270,130,18,Color.WHITE);
+      rect(c,270,138,270+420*boss.actor.healthFraction(),147,Color.RED);
+      rect(c,270,151,270+420*boss.actor.posture.fraction(),157,Color.YELLOW);
+    }
     if(inventoryMenu.open) drawInventory(c);
     c.restore();
   }

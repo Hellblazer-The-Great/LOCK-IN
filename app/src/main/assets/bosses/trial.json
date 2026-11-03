@@ -1,0 +1,43 @@
+{
+  "bosses": [
+    {
+      "id": "castle_trial",
+      "name": "Castle Warden",
+      "level": "boss_demo",
+      "spawn": "samurai_1",
+      "trigger": {
+        "x": 400,
+        "y": 760,
+        "width": 600,
+        "height": 180
+      },
+      "phases": [
+        {
+          "healthBelow": 1,
+          "behavior": "samurai_melee",
+          "maxPosture": 100,
+          "transitionDuration": 0.25,
+          "invulnerable": true,
+          "animation": "samurai_prepare"
+        },
+        {
+          "healthBelow": 0.5,
+          "event": "enrage",
+          "behavior": "warden_enraged",
+          "speedMultiplier": 1.2,
+          "damageMultiplier": 1.25,
+          "maxPosture": 150,
+          "transitionDuration": 0.5,
+          "invulnerable": true,
+          "animation": "samurai_heavy_prepare"
+        }
+      ],
+      "rewards": [
+        {
+          "item": "healing_flask",
+          "quantity": 2
+        }
+      ]
+    }
+  ]
+}

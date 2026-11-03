@@ -1,0 +1,12 @@
+{
+  "combos": [
+    {
+      "id": "warden_pool",
+      "sequence": [
+        "double_slash",
+        "heavy_overhead"
+      ],
+      "followups": []
+    }
+  ]
+}

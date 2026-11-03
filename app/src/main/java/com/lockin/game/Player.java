@@ -477,6 +477,7 @@ public final class Player {
         || staggered()
         || dashing()
         || deathblowing()
+        || enemy.encounterInvulnerable
         || enemy.defeated()
         || !enemy.posture.broken()) return false;
     float dx = enemy.x + enemy.width / 2 - (x + width / 2);

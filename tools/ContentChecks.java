@@ -890,6 +890,43 @@ public final class ContentChecks {
     check(p.animation("idle").equals("ninja_idle"),"animation override removed on unequip");
   }
 
+  static void bosses() throws Exception {
+    Game g=new Game(base);g.loadLevel("boss_demo","start");
+    BossEncounter b=g.encounter("castle_trial");
+    check(b!=null && !b.active(),"configured boss awaits rectangle activation");
+    int hp=b.actor.health;b.actor.takeDamage(100);
+    check(b.actor.health==hp,"inactive boss protected");
+    g.player.x=500;g.player.y=876;g.update(DT,0,false,false);
+    check(b.active() && g.activeBoss()==b,"activation exposes boss HUD model");
+    check(b.transitioning() && b.actor.encounterLocked,"initial transition locks actions");
+    b.actor.takeDamage(100);check(b.actor.health==hp,"transition invulnerability applied");
+    for(int n=0;n<40;n++)g.update(DT,0,false,false);
+    check(!b.transitioning(),"transition duration expires on fixed ticks");
+    b.actor.takeDamage(60);g.update(DT,0,false,false);
+    check(b.phase()==1 && b.transitioning(),"health threshold selects next phase");
+    near(b.actor.posture.fraction(),0,"transition resets posture");
+    near(b.actor.speed,b.actor.definition.speed*1.2,"phase stats applied");
+    for(int n=0;n<70;n++)g.update(DT,0,false,false);
+    g.player.x=b.actor.x-g.player.width-20;g.player.y=b.actor.y;
+    for(int n=0;n<200 && !b.actor.attackRun.running();n++)g.update(DT,0,false,false);
+    check(b.actor.attackId().equals("double_slash"),"phase-specific attack pool selected");
+    b.actor.takeDamage(100000);g.update(DT,0,false,false);
+    check(b.complete() && g.activeBoss()==null,"defeat hides boss HUD");
+    check(g.completedEncounters().contains("castle_trial"),"stable completion flag exposed");
+    check(g.player.inventory.count("healing_flask")==5,"configured reward granted");
+    g.update(DT,0,false,false);
+    check(g.player.inventory.count("healing_flask")==5,"reward cannot repeat");
+    g.restart();check(!b.active() && g.completedEncounters().isEmpty(),"reset clears run encounters/flags");
+    g.loadLevel("boss_demo","start");g.player.x=500;g.player.y=876;
+    for(int n=0;n<40;n++)g.update(DT,0,false,false);
+    g.signalEncounter("castle_trial","enrage");g.update(DT,0,false,false);
+    check(b.phase()==1 && b.actor.health==b.actor.maxHealth,"explicit event transitions without health loss");
+    invalid(Map.of("bosses/trial.json",read("bosses/trial.json")
+        .replace("\"behavior\": \"warden_enraged\"","\"behavior\": \"missing\"")),"missing");
+    invalid(Map.of("bosses/trial.json",read("bosses/trial.json")
+        .replace("\"healthBelow\": 0.5","\"healthBelow\": 1")),"decrease");
+  }
+
   public static void main(String[] args) throws Exception {
     base = Content.load(disk);
     parsing();
@@ -903,6 +940,7 @@ public final class ContentChecks {
     perHitTransfers();
     equipment();
     inventoryMenu();
+    bosses();
     System.out.println(
         "Passed " + checks + " content parsing/editing/runtime/animation/transition checks (A–E)");
   }

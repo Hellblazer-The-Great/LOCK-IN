@@ -11,19 +11,25 @@
     "combat/weapons.json"
   ],
   "combos": [
-    "combat/combos.json"
+    "combat/combos.json",
+    "combat/boss_demo.json"
   ],
   "animations": [
     "animations/player.json",
     "animations/enemy.json"
   ],
   "behaviors": [
-    "behaviors/enemy.json"
+    "behaviors/enemy.json",
+    "behaviors/boss_demo.json"
   ],
   "levels": [
     {
       "id": "castle",
       "file": "levels/test_arena.tmj"
+    },
+    {
+      "id": "boss_demo",
+      "file": "levels/boss_demo.tmj"
     }
   ],
   "defenses": [
@@ -57,5 +63,8 @@
         "quantity": 3
       }
     ]
-  }
+  },
+  "bosses": [
+    "bosses/trial.json"
+  ]
 }

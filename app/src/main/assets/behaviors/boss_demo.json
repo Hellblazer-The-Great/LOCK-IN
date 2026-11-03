@@ -1,0 +1,28 @@
+{
+  "behaviors": [
+    {
+      "id": "warden_enraged",
+      "type": "melee",
+      "selection": "sequence",
+      "combo": "warden_pool",
+      "weights": [
+        1,
+        2
+      ],
+      "detectionRadius": 340,
+      "engagementDistance": 30,
+      "betweenMoves": 0.08,
+      "staggerRecovery": 0.7,
+      "chase": true,
+      "facePlayer": true,
+      "seed": 1337,
+      "transitions": [
+        "detect",
+        "in_melee_range",
+        "timeline_complete",
+        "posture_broken",
+        "health_zero"
+      ]
+    }
+  ]
+}

@@ -85,6 +85,10 @@ public final class ContentAnimations {
     String state;
     boolean sync = false;
     if (e.defeated()) state = "death";
+    else if(g.activeBoss()!=null && g.activeBoss().actor==e && !g.activeBoss().animation().isEmpty()) {
+      var boss=g.activeBoss();state="transition";
+      enemy.play(boss.animation(),900000+boss.phase());enemy.sample(boss.transitionProgress());sync=true;
+    }
     else if (e.posture.broken()) state = "stagger";
     else if (e.attackRun.running()) {
       state = e.attackRun.phase().name().toLowerCase(java.util.Locale.ROOT);
