@@ -945,6 +945,107 @@ public final class ContentChecks {
     invalid(Map.of("combat/lunge.json",read("combat/lunge.json").replace("\"distance\": 90","\"distance\": 9000")),"distance");
   }
 
+  static void mechanics() throws Exception {
+    var source=new AttackRun();source.start(base.attacks.get("shock_slash"));
+    Player p=player(base);Enemy e=enemy(base);place(p,e);
+    e.receiveHit(10,10,source,true);
+    near(e.health,90,"reaction does not suppress HP damage");
+    check(e.combat.stunned(),"unblocked contact applies stun");
+    near(e.velocityY,-200,"vertical launch impulse applied once");
+    float old=e.x;e.update(DT,p);
+    check(e.x>old,"horizontal knockback integrates during stun");
+    e.combat.tick(.3);check(!e.combat.stunned(),"deterministic stun expiry");
+
+    e=enemy(base);e.attackRun.start(base.attacks.get("shock_enemy_slash"));
+    e.receiveHit(10,10,source,true);
+    near(e.health,90,"armor retains incoming HP damage");
+    near(e.posture.value(),10,"armor retains posture damage");
+    check(e.attackRun.running()&&!e.combat.stunned(),"armor suppresses interruption and reaction");
+    e=enemy(base);e.attackRun.start(base.attacks.get("shock_enemy_slash"));e.attackRun.advance(.11);
+    e.receiveHit(10,10,source,true);
+    near(e.health,100,"attack damage immunity prevents HP loss");
+    near(e.posture.value(),10,"damage immunity does not imply posture immunity");
+    e=enemy(base);e.attackRun.start(base.attacks.get("shock_enemy_slash"));e.attackRun.advance(.21);
+    e.receiveHit(10,10,source,true);
+    near(e.health,90,"stagger immunity does not prevent damage");
+    near(e.posture.value(),0,"stagger immunity prevents posture accumulation");
+    check(!e.combat.stunned()&&e.attackRun.running(),"stagger immunity prevents stun and interrupt");
+    Content resistant=edit("entities/enemy.json","\"maxHealth\": 100","\"maxHealth\": 100, \"staggerResistance\": 100");
+    e=enemy(resistant);e.receiveHit(10,10,source,true);
+    check(!e.combat.stunned(),"resistance threshold rejects light hit reactions");
+    near(e.health,90,"resistance does not erase damage");
+
+    p=player(base);e=enemy(base);place(p,e);
+    p.attackRun.start(base.attacks.get("shock_slash"));p.attackRun.advance(.21);
+    e.attackRun.start(base.attacks.get("normal_slash"));e.attackRun.advance(.51);
+    p.receiveAttack(e);near(p.health,80,"player stagger immunity still permits HP loss");
+    near(p.posture.value(),0,"player stagger immunity prevents received posture");
+    check(!p.combat.stunned(),"player stagger immunity suppresses hit reaction");
+
+    e=enemy(base);e.attackRun.start(base.attacks.get("normal_slash"));
+    e.receiveHit(10,10,source,false);
+    check(!e.attackRun.running(),"hit stun cancels running enemy attack");
+    old=e.x;e.update(DT,p);check(e.x<old,"left-facing source mirrors horizontal impulse");
+    p=player(base);e=enemy(base);place(p,e);
+    e.attackRun.start(base.attacks.get("shock_enemy_slash"));e.attackRun.advance(.51);
+    p.receiveAttack(e);check(p.combat.stunned(),"actual enemy hit stuns player");
+    check(!p.startDash(1),"stun suppresses dash until deterministic recovery");
+    p.setGuard(true,true);check(!p.guarding(),"stun suppresses guard");
+    p.update(DT,1,true,true);check(!p.attacking(),"stun suppresses attack input");
+    AttackRun window=new AttackRun();window.start(base.attacks.get("shock_slash"));window.advance(.1);
+    check(CombatState.damageImmune(window),"immunity window inclusive entry");
+    window.advance(.1);check(!CombatState.damageImmune(window),"immunity window exclusive exit");
+    p=player(base);p.inventory.equip("long_blade",0);p.powerUpgrade(2);
+    p.combat.start(base.attacks.get("shock_slash"));
+    near(p.healthDamage(),72,"temporary buff, equipment and power combine exactly once");
+
+    p=player(base);e=enemy(base);place(p,e);
+    p.attackRun.start(base.attacks.get("shock_slash"));p.attackRun.advance(.11);
+    e.attackRun.start(base.attacks.get("shock_enemy_slash"));e.attackRun.advance(.51);
+    p.receiveAttack(e);
+    near(p.health,100,"damage immunity evaluated before stun cancels owner attack");
+    check(p.combat.stunned(),"damage immunity remains separate from reaction immunity");
+
+    Content c=edit("entities/player.json","\"attack\": \"player_slash\"","\"attack\": \"shock_slash\"");
+    Game g=new Game(c);g.loadLevel("boss_demo","start");g.player.health=50;
+    g.update(DT,0,false,true);
+    near(g.player.health,60,"on-start healing runtime consumer");
+    near(g.player.healthDamage(),30,"temporary damage multiplier applied once");
+    near(g.player.postureDamage(),20,"temporary posture debuff applied");
+    check(g.hitstopRemaining()>0 && g.shakeRemaining()>0,"presentation effects reach game state");
+    float x=g.player.x;double age=g.player.attackRun.age();
+    g.update(DT,1,false,false);
+    near(g.player.x,x,"hitstop freezes world movement");
+    near(g.player.attackRun.age(),age,"hitstop freezes attack clock");
+    near(g.lastAdvanceSeconds(),0,"hitstop freezes animation clock");
+    check(g.shakeX()!=0,"camera shake has rendered world offset");
+    g.setInventoryPaused(true);double remaining=g.hitstopRemaining();g.update(.2f,0,false,false);
+    near(g.hitstopRemaining(),remaining,"inventory pause freezes effect timers");
+    g.setInventoryPaused(false);
+    for(int i=0;i<300;i++)g.update(DT,0,false,false);
+    near(g.hitstopRemaining(),0,"hitstop expires");near(g.shakeRemaining(),0,"shake expires");
+    near(g.player.combat.damageMultiplier(),1,"temporary damage buff expires");
+    near(g.player.combat.postureMultiplier(),1,"temporary posture buff expires");
+    g.restart();near(g.hitstopRemaining(),0,"reset clears presentation freeze");
+    near(g.player.combat.damageMultiplier(),1,"reset clears actor buffs");
+    CombatState state=new CombatState();state.start(base.attacks.get("shock_slash"));state.tick(.5);
+    state.start(base.attacks.get("shock_slash"));near(state.damageMultiplier(),1.2,"refresh cannot compound buff");
+    state.tick(1.9);near(state.damageMultiplier(),1.2,"refresh retains configured duration");
+    state.tick(.2);near(state.damageMultiplier(),1,"refreshed buff expires");
+
+    g=new Game(base);g.loadLevel("boss_demo","start");e=g.enemies()[0];
+    e.encounterInvulnerable=e.encounterLocked=false;e.x=960-e.width-1;
+    e.receiveHit(1,1,source,true);old=e.x;float oldY=e.y;
+    e.update(DT,g.player);SolidPhysics.enemy(e,g.area().definition,old,oldY,DT);
+    check(e.x<=960-e.width,"knockback respects world boundary");
+    check(e.velocityY>-200,"gravity continues during vertical knockback/stun");
+    invalid(Map.of("combat/mechanics.json",read("combat/mechanics.json").replace("\"type\": \"heal\"","\"type\": \"script\"")),"unsupported effect");
+    invalid(Map.of("combat/mechanics.json",read("combat/mechanics.json").replace("\"horizontal\": 300","\"horizontal\": 9000")),"horizontal");
+    invalid(Map.of("entities/player.json",read("entities/player.json").replace("\"maxHealth\": 100","\"maxHealth\": 100, \"staggerResistance\": -1")),"staggerResistance");
+    invalid(Map.of("combat/mechanics.json",read("combat/mechanics.json").replace("\"stun\": 0.2","\"stun\": -1")),"stun");
+    invalid(Map.of("combat/mechanics.json",read("combat/mechanics.json").replace("\"amount\": 1.2","\"amount\": 100")),"amount");
+  }
+
   public static void main(String[] args) throws Exception {
     base = Content.load(disk);
     parsing();
@@ -960,6 +1061,7 @@ public final class ContentChecks {
     inventoryMenu();
     bosses();
     lunges();
+    mechanics();
     System.out.println(
         "Passed " + checks + " content parsing/editing/runtime/animation/transition checks (A–E)");
   }

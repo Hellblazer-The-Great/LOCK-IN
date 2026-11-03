@@ -47,6 +47,7 @@ public final class AttackDef {
     }
   }
   public final Motion motion;
+  public final CombatRules combat;
   public final String id, style, recoveryAnimation;
   public final int damage;
   public final double postureDamage, blockDamage, deflectDamage, duration, cooldown;
@@ -90,6 +91,27 @@ public final class AttackDef {
       List<Hit> hits,
       List<Window> cancel,
       String recovery, Motion motion) {
+    this(id,style,damage,posture,block,deflect,duration,cooldown,directional,blockable,
+        deflectable,interrupt,hits,cancel,recovery,motion,CombatRules.NONE);
+  }
+
+  public AttackDef(
+      String id,
+      String style,
+      int damage,
+      double posture,
+      double block,
+      double deflect,
+      double duration,
+      double cooldown,
+      boolean directional,
+      boolean blockable,
+      boolean deflectable,
+      boolean interrupt,
+      List<Hit> hits,
+      List<Window> cancel,
+      String recovery, Motion motion, CombatRules combat) {
+    this.combat=combat;
     this.motion=motion;
     this.id = id;
     this.style = style;

@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "id": "shock_blade",
+      "name": "Shock blade",
+      "description": "Test blade: launch/stun contact, timed armor/immunity and owner buffs on attack start. Not initially equipped or granted.",
+      "category": "weapon",
+      "stackLimit": 1,
+      "attack": "shock_slash",
+      "combo": ""
+    }
+  ]
+}

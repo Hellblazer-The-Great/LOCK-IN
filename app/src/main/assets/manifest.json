@@ -9,7 +9,8 @@
     "combat/attacks.json",
     "combat/flurry.json",
     "combat/weapons.json",
-    "combat/lunge.json"
+    "combat/lunge.json",
+    "combat/mechanics.json"
   ],
   "combos": [
     "combat/combos.json",
@@ -37,7 +38,8 @@
     "combat/defense.json"
   ],
   "items": [
-    "items/foundation.json"
+    "items/foundation.json",
+    "items/mechanics.json"
   ],
   "inventory": {
     "accessorySlots": 2,

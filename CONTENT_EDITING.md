@@ -293,3 +293,85 @@ opt-in sample boss. Existing enemy movesets and weapons are unchanged.
 Knockback, hit stun, armor, attack immunity, timed buffs, hitstop, camera shake,
 projectiles and arena locking are not implemented in this milestone. Do not add
 unsupported effect fields; strict validation rejects them.
+
+## v0.4.2: reactions, immunity and typed combat effects
+
+All additions are optional. Existing attacks/entities keep their behavior.
+`combat/mechanics.json` supplies working `shock_slash` and `shock_enemy_slash`
+examples using existing art; `items/mechanics.json` registers `shock_blade`.
+The blade is not initially owned/equipped and existing enemy/boss pools are not
+changed. To try it, add `{ "id":"shock_blade", "quantity":1 }` to
+manifest.inventory.initialItems, validate/rebuild, then equip it from ITEMS.
+Alternatively grant it through an ordinary kind=item pickup. Copy either attack
+under your own ID and reference it from a weapon or a behavior combo.
+
+An attack's optional `combat` object has this supported shape:
+
+```json
+"combat": {
+  "reaction": {
+    "horizontal": 300, "vertical": -200,
+    "knockbackDuration": 0.15, "stun": 0.2
+  },
+  "armor": [{"start":0,"end":0.1}],
+  "damageImmunity": [{"start":0.1,"end":0.2}],
+  "staggerImmunity": [{"start":0.2,"end":0.3}],
+  "effects": [
+    {"type":"heal","amount":10},
+    {"type":"damageMultiplier","amount":1.2,"duration":2},
+    {"type":"postureMultiplier","amount":0.8,"duration":2},
+    {"type":"hitstop","duration":0.03333333333333333},
+    {"type":"cameraShake","amount":4,"duration":0.2}
+  ]
+}
+```
+
+Reactions apply to the target only on an unblocked contact. Horizontal is signed
+pixels/second relative to attacker facing; negative pulls toward/behind the
+attacker. Vertical is a world-space velocity impulse (negative up), applied once.
+Horizontal speed persists for knockbackDuration; vertical velocity then follows
+normal gravity. Movement still sweeps against terrain/world/actor bodies.
+A new nonzero horizontal impulse replaces the previous one; zero leaves an
+existing impulse intact. Stun takes max(existing remaining,new duration), not
+addition, and suppresses movement/jump/guard/dash/attack/equipment actions. Gravity
+and committed damage continue. It cancels the current attack; cooldown is not
+refunded. Enemy navigation resumes through the existing chase implementation.
+
+Optional entity `staggerResistance` (default0) is a per-contact incoming posture
+threshold for reactions and ordinary interruptOnHit. Less than the threshold
+suppresses knockback, stun and ordinary attack interruption, **not** HP/posture
+loss. At or above it, reactions apply. Full posture breaks still interrupt even
+through super-armor/resistance. Resistance is not a second posture meter.
+
+Window times are attack age seconds, [start,end), bounded by attack duration.
+`armor` suppresses reactions and ordinary attack interruption while damage and
+posture continue. `damageImmunity` prevents HP loss only: guard/deflection and
+posture transfers still resolve. `staggerImmunity` prevents received posture,
+knockback, hit stun and ordinary interruption, while HP loss still applies.
+Damage immunity is evaluated before reaction cancellation. Cancelling/finishing
+an attack ends its windows; they are not separate persistent statuses. Enemy
+boss transition protection retains its stronger full-contact protection.
+Dash keeps its original complete contact dodge/consumption and anti-spam guard
+mechanics remain unchanged. Enemies gain no block/deflect action.
+
+Effects run **once on the attack owner's initiation**, not on every hit or
+animation frame. Healing is immediate and cannot resurrect a dead actor. Outgoing
+HP/posture modifiers multiply existing equipment/power/phase modifiers once.
+Each stat has one timed slot: newest value replaces the previous value, duration
+becomes max(existing remaining,new duration); it never compounds with itself.
+Values below1 are debuffs. Cancelling the attack does not remove these timed
+buffs. Hitstop is global world/action/animation freeze, bounded to0.5s per effect;
+reapplications take maximum remaining time, never sum. Camera shake uses maximum
+amplitude and remaining duration and affects world drawing only, not HUD, input,
+camera position or collision. Its waveform is deterministic, not random.
+
+Gameplay buff/stun timers freeze during inventory pause and hitstop. Hitstop and
+shake themselves advance on fixed presentation ticks during hitstop and freeze
+during inventory pause. Enemy buffs continue expiring during boss transition
+locks; phase entry clears reaction impulses/stun. RESET clears all actor/global
+effects. Enemy action cooldowns pause during hit stun; player attack cooldowns
+continue while stunned. No per-frame effect objects or PNG loads are created.
+
+Projectiles and arbitrary scripts/status names are not supported. Unknown fields
+and types fail validation; do not invent event handlers. Physical knockback feel,
+shake comfort and touchscreen behavior still require device testing.

@@ -5,6 +5,7 @@ import com.lockin.game.content.*;
 public final class Player {
   public final EntityDef definition;
   public final Inventory inventory;
+  public final CombatState combat=new CombatState();
   private int healthUpgradeBonus;
   private final Content content;
   public final AttackRun attackRun = new AttackRun();
@@ -62,7 +63,7 @@ public final class Player {
     if(!defeated() && amount>0) health=(int)Math.min(maxHealth,(long)health+amount);
   }
   public boolean canManageEquipment() {
-    return !defeated() && !staggered() && !dashing() && !deathblowing() && !attackRun.running();
+    return !combat.stunned() && !defeated() && !staggered() && !dashing() && !deathblowing() && !attackRun.running();
   }
   public String defaultAttack() {return inventory.attack(definition.attack);}
   public String comboId() {return inventory.combo(definition.combo);}
@@ -79,13 +80,13 @@ public final class Player {
   public int healthDamage() {
     int baseDamage = definition == null ? DAMAGE
         : attackRun.definition() == null ? damageAttack().damage : attackRun.damage();
-    return (int) Math.min(Integer.MAX_VALUE, Math.round(baseDamage * (double) attackMultiplier * inventory.damageMultiplier()));
+    return (int) Math.min(Integer.MAX_VALUE, Math.round(baseDamage * (double) attackMultiplier * inventory.damageMultiplier()*combat.damageMultiplier()));
   }
 
   public double postureDamage() {
     double baseDamage = definition == null ? POSTURE_DAMAGE
         : attackRun.definition() == null ? damageAttack().postureDamage : attackRun.postureDamage();
-    return baseDamage * attackMultiplier * inventory.postureMultiplier();
+    return baseDamage * attackMultiplier * inventory.postureMultiplier()*combat.postureMultiplier();
   }
 
   public int health;
@@ -177,7 +178,7 @@ public final class Player {
   }
 
   public boolean guarding() {
-    return guarding && !staggered() && !defeated() && !dashing() && !deathblowing();
+    return guarding && !combat.stunned() && !staggered() && !defeated() && !dashing() && !deathblowing();
   }
 
   public boolean dashing() {
@@ -201,7 +202,7 @@ public final class Player {
   }
 
   public boolean startDash(int move) {
-    if (defeated() || dashing() || deathblowing() || dashCooldown > 1e-7) return false;
+    if (combat.stunned() || defeated() || dashing() || deathblowing() || dashCooldown > 1e-7) return false;
     if (definition != null
         && !staggered()
         && attackRun.running()
@@ -279,7 +280,7 @@ public final class Player {
       }
       guardNeedsFreshPress = false;
     }
-    if (staggered()) {
+    if (staggered() || combat.stunned()) {
       guarding = held;
       guardAge = Double.POSITIVE_INFINITY;
       return;
@@ -336,7 +337,7 @@ public final class Player {
                   * (definition == null ? 1 : definition.deflectPostureMultiplier));
     } else if (guarding() && attacker.blockable()) {
       impact = Impact.BLOCK;
-      posture.add(
+      addPosture(
           attacker.definition == null
               ? config.blockDamage * attacker.damageMultiplier()
               : attacker.blockDamage()
@@ -348,8 +349,13 @@ public final class Player {
       }
     } else {
       impact = Impact.HIT;
-      posture.add(attacker.postureDamage());
+      addPosture(attacker.postureDamage());
       takeDamage(attacker.healthDamage());
+      if(!defeated() && canReact(attacker.postureDamage()) && attacker.attackRun.definition()!=null) {
+        var rules=attacker.attackRun.definition().combat;combat.react(rules,attacker.facingRight);
+        if(rules.vertical!=0){velocityY=rules.vertical;grounded=false;climbing=false;}
+        if(combat.stunned())cancelConfiguredAttack();
+      }
       if (staggered()) {
         attackTime = 0;
         guardAge = Double.POSITIVE_INFINITY;
@@ -359,7 +365,7 @@ public final class Player {
         || (impact == Impact.HIT
             && definition != null
             && attackRun.running()
-            && attackRun.definition().interruptOnHit)) cancelConfiguredAttack();
+            && attackRun.definition().interruptOnHit && canReact(attacker.postureDamage()))) cancelConfiguredAttack();
     feedbackTime = .25;
   }
 
@@ -367,7 +373,11 @@ public final class Player {
     return health <= 0;
   }
 
+  private void addPosture(double amount){if(!CombatState.staggerImmune(attackRun))posture.add(amount);}
+  private boolean canReact(double amount){return !CombatState.armored(attackRun) && !CombatState.staggerImmune(attackRun)
+      && amount>=(definition==null?0:definition.staggerResistance);}
   public void takeDamage(int amount) {
+    if(CombatState.damageImmune(attackRun))return;
     amount=(int)Math.min(Integer.MAX_VALUE,Math.round(Math.max(0,amount)*inventory.incomingMultiplier()));
     health = (int) Math.max(0, (long) health - Math.max(0, amount));
     if (defeated()) {
@@ -392,6 +402,7 @@ public final class Player {
   }
 
   public void reset() {
+    combat.reset();
     attackRun.reset();
     configuredCooldown = 0;
     bufferedCombo = null;
@@ -427,6 +438,7 @@ public final class Player {
   public void update(float dt, int move, boolean jump, boolean attack) {
     if (defeated() || !Float.isFinite(dt) || dt <= 0) return;
     float oldX = x;
+    x+=combat.tick(dt);
     boolean movingDash = dashing(), executing = deathblowing();
     dashCooldown = Math.max(0, dashCooldown - dt);
     deathblowTime = Math.max(0, deathblowTime - dt);
@@ -436,7 +448,8 @@ public final class Player {
       x+=(facingRight?1:-1)*attackRun.motionDelta();
     }
     cooldown = Math.max(0, cooldown - dt);
-    if (staggered() || executing) {
+    heal(combat.drainHeal());
+    if (staggered() || combat.stunned() || executing) {
       move = 0;
       velocityX = 0;
       jump = attack = false;
@@ -477,9 +490,11 @@ public final class Player {
 
   public boolean canDeathblow(Enemy enemy) {
     if (defeated()
+        || combat.stunned()
         || staggered()
         || dashing()
         || deathblowing()
+        || CombatState.damageImmune(enemy.attackRun)
         || enemy.encounterInvulnerable
         || enemy.defeated()
         || !enemy.posture.broken()) return false;
@@ -554,7 +569,7 @@ public final class Player {
             enemy.x + enemy.width,
             enemy.y + enemy.height)) {
       posture.pressure();
-      enemy.receiveHit(healthDamage(), postureDamage());
+      enemy.receiveHit(healthDamage(), postureDamage(),attackRun,facingRight);
       hitThisAttack = true;
       if (definition != null) attackRun.consume();
     }
@@ -568,12 +583,13 @@ public final class Player {
   private void beginAttack(String id) {
     AttackDef a = content.attacks.get(id);
     attackRun.start(a);
+    combat.start(a);
     configuredCooldown = a.cooldown;
   }
 
   private void updateConfiguredAttack(float dt, boolean pressed) {
     configuredCooldown = Math.max(0, configuredCooldown - dt);
-    if (staggered() || dashing() || deathblowing()) {
+    if (staggered() || combat.stunned() || dashing() || deathblowing()) {
       cancelConfiguredAttack();
       return;
     }
