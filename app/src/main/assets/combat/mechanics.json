@@ -1,0 +1,169 @@
+{
+  "attacks": [
+    {
+      "id": "shock_slash",
+      "style": "normal",
+      "damage": 25,
+      "postureDamage": 25,
+      "blockDamage": 25,
+      "deflectDamage": 35,
+      "duration": 0.45,
+      "cooldown": 0.45,
+      "directional": true,
+      "blockable": true,
+      "deflectable": true,
+      "interruptOnHit": true,
+      "hits": [
+        {
+          "id": "slash",
+          "start": 0,
+          "end": 0.16,
+          "forward": 0,
+          "top": 10,
+          "width": 68,
+          "height": 46,
+          "windupAnimation": "ninja_prepare",
+          "activeAnimation": "ninja_strike"
+        }
+      ],
+      "dashCancel": [
+        {
+          "start": 0,
+          "end": 0.45
+        }
+      ],
+      "recoveryAnimation": "ninja_recover",
+      "combat": {
+        "reaction": {
+          "horizontal": 300,
+          "vertical": -200,
+          "knockbackDuration": 0.15,
+          "stun": 0.2
+        },
+        "armor": [
+          {
+            "start": 0,
+            "end": 0.1
+          }
+        ],
+        "damageImmunity": [
+          {
+            "start": 0.1,
+            "end": 0.2
+          }
+        ],
+        "staggerImmunity": [
+          {
+            "start": 0.2,
+            "end": 0.3
+          }
+        ],
+        "effects": [
+          {
+            "type": "heal",
+            "amount": 10
+          },
+          {
+            "type": "damageMultiplier",
+            "amount": 1.2,
+            "duration": 2
+          },
+          {
+            "type": "postureMultiplier",
+            "amount": 0.8,
+            "duration": 2
+          },
+          {
+            "type": "hitstop",
+            "duration": 0.03333333333333333
+          },
+          {
+            "type": "cameraShake",
+            "amount": 4,
+            "duration": 0.2
+          }
+        ]
+      }
+    },
+    {
+      "id": "shock_enemy_slash",
+      "style": "normal",
+      "damage": 20,
+      "postureDamage": 25,
+      "blockDamage": 25,
+      "deflectDamage": 35,
+      "duration": 1.38,
+      "cooldown": 0,
+      "directional": true,
+      "blockable": true,
+      "deflectable": true,
+      "interruptOnHit": true,
+      "hits": [
+        {
+          "id": "slash",
+          "start": 0.5,
+          "end": 0.68,
+          "forward": 0,
+          "top": 10,
+          "width": 64,
+          "height": 52,
+          "windupAnimation": "samurai_prepare",
+          "activeAnimation": "samurai_strike"
+        }
+      ],
+      "dashCancel": [],
+      "recoveryAnimation": "samurai_recover",
+      "combat": {
+        "reaction": {
+          "horizontal": 300,
+          "vertical": -200,
+          "knockbackDuration": 0.15,
+          "stun": 0.2
+        },
+        "armor": [
+          {
+            "start": 0,
+            "end": 0.1
+          }
+        ],
+        "damageImmunity": [
+          {
+            "start": 0.1,
+            "end": 0.2
+          }
+        ],
+        "staggerImmunity": [
+          {
+            "start": 0.2,
+            "end": 0.3
+          }
+        ],
+        "effects": [
+          {
+            "type": "heal",
+            "amount": 10
+          },
+          {
+            "type": "damageMultiplier",
+            "amount": 1.2,
+            "duration": 2
+          },
+          {
+            "type": "postureMultiplier",
+            "amount": 0.8,
+            "duration": 2
+          },
+          {
+            "type": "hitstop",
+            "duration": 0.03333333333333333
+          },
+          {
+            "type": "cameraShake",
+            "amount": 4,
+            "duration": 0.2
+          }
+        ]
+      }
+    }
+  ]
+}

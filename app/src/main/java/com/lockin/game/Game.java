@@ -39,6 +39,17 @@ public final class Game {
 
   private boolean jumpQueued, attackQueued, dashQueued;
   public final Content content;
+  private double hitstopRemaining,shakeRemaining,shakeAmplitude;
+  public double hitstopRemaining(){return hitstopRemaining;}
+  public double shakeRemaining(){return shakeRemaining;}
+  public float shakeX(){return (float)(shakeRemaining>0?Math.sin(simulationSteps*2.399963)*shakeAmplitude:0);}
+  public float shakeY(){return (float)(shakeRemaining>0?Math.cos(simulationSteps*1.618034)*shakeAmplitude*.5:0);}
+  private void collectPresentation(CombatState state) {
+    hitstopRemaining=Math.max(hitstopRemaining,state.pendingStop);
+    shakeRemaining=Math.max(shakeRemaining,state.pendingShakeTime);
+    shakeAmplitude=Math.max(shakeAmplitude,state.pendingShake);
+    state.pendingStop=state.pendingShakeTime=state.pendingShake=0;
+  }
   private BossEncounter[] encounters=new BossEncounter[0];
   private final java.util.Set<String> completedEncounters=new java.util.LinkedHashSet<>();
   public java.util.Set<String> completedEncounters(){return java.util.Collections.unmodifiableSet(completedEncounters);}
@@ -381,6 +392,7 @@ public final class Game {
   }
 
   public void restart() {
+    hitstopRemaining=shakeRemaining=shakeAmplitude=0;
     restartVersion++;
     simulationSteps = 0;
     lastAdvanceSeconds = droppedSeconds = 0;
@@ -455,6 +467,12 @@ public final class Game {
     int budget = MAX_STEPS_PER_UPDATE;
     while (accumulator + 1e-9 >= STEP && budget-- > 0) {
       simulationSteps++;
+      shakeRemaining=Math.max(0,shakeRemaining-STEP);
+      if(shakeRemaining==0)shakeAmplitude=0;
+      if(hitstopRemaining>1e-9) {
+        hitstopRemaining=Math.max(0,hitstopRemaining-STEP);
+        accumulator=Math.max(0,accumulator-STEP);continue;
+      }
       lastAdvanceSeconds += STEP;
       float step = (float) STEP;
       accumulator = Math.max(0, accumulator - STEP);
@@ -481,7 +499,7 @@ public final class Game {
         Enemy e = enemies()[i];
         float oldX = e.x, oldY = e.y;
         boolean navigating =
-            !combatArena && !e.encounterLocked && area().navigators[i].update(e, player, area().definition, step);
+            !combatArena && !e.encounterLocked && !e.combat.stunned() && area().navigators[i].update(e, player, area().definition, step);
         e.update(step, player, navigating);
         if (continuous) SolidPhysics.enemy(e, area().definition, oldX, oldY, step);
         else if (!combatArena)
@@ -494,6 +512,8 @@ public final class Game {
           }
         e.tryHit(player);
       }
+      collectPresentation(player.combat);
+      for(Enemy actor:enemies())collectPresentation(actor.combat);
       updateEncounters(0);
       exits(move);
       if (player.defeated()) {

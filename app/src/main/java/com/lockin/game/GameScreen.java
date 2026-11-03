@@ -323,7 +323,7 @@ public final class GameScreen extends SurfaceView implements SurfaceHolder.Callb
     Enemy e = game.enemy;
     sprites.worldBackground(c, camera.x(), camera.y());
     c.save();
-    c.translate(-camera.x(), -camera.y());
+    c.translate(-camera.x()+game.shakeX(), -camera.y()+game.shakeY());
     sprites.worldTerrain(c, camera.x(), camera.y());
     for (int i = 0; i < game.level().pickups.size(); i++)
       if (!game.area().collected[i]) {

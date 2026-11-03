@@ -7,6 +7,7 @@ import java.util.*;
 public final class EntityDef {
   public final String id, kind, attack, behavior, combo;
   public final int maxHealth;
+  public final double staggerResistance;
   public final float width, height, speed, acceleration, jumpSpeed, gravity, climbSpeed, airSpeed;
   public final double dashDuration,
       dashSpeed,
@@ -31,6 +32,7 @@ public final class EntityDef {
     attack = n.str("attack");
     behavior = n.str("behavior", "");
     combo = n.str("combo", "");
+    staggerResistance=n.has("staggerResistance")?n.get("staggerResistance").range(0,1e9):0;
     maxHealth = n.get("maxHealth").integer(1, 1000000000);
     width = n.f("width", 1, 500);
     height = n.f("height", 1, 500);

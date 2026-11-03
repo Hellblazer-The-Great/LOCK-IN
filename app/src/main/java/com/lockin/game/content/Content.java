@@ -372,7 +372,7 @@ public final class Content {
             "deflectable",
             "interruptOnHit",
             "hits",
-            "dashCancel", "motion",
+            "dashCancel", "motion", "combat",
             "recoveryAnimation");
         double duration = n.get("duration").range(.008333, 60),
             cooldown = n.get("cooldown").range(0, 60);
@@ -446,7 +446,8 @@ public final class Content {
                 hits,
                 cancel,
                 recovery,
-                n.has("motion")?AttackDef.Motion.parse(n.get("motion"),duration):AttackDef.Motion.NONE),
+                n.has("motion")?AttackDef.Motion.parse(n.get("motion"),duration):AttackDef.Motion.NONE,
+                n.has("combat")?new CombatRules(n.get("combat"),duration):CombatRules.NONE),
             n);
       }
     }
@@ -585,6 +586,7 @@ public final class Content {
       n.only(
           "id",
           "kind",
+          "staggerResistance",
           "maxHealth",
           "width",
           "height",
